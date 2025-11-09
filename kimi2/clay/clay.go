@@ -1145,9 +1145,21 @@ func Clay__GenerateRenderCommands() {
 			})
 		}
 	}
-	// normal root
-	root := &gElements[0]
-	Clay__RenderElementRecursive(root, Vector2{}, 0)
+	for _, root := range gLayoutElementTreeRoots {
+		el := &gElements[root.elementIndex]
+		offset := Vector2{}
+		// floating roots have their own offset calculation already done
+		if el.decl.Floating != nil {
+			offset = Clay__CalcAttachPos(
+				Clay__GetHashMapItem(root.parentID).boundingBox,
+				el.dimensions,
+				el.decl.Floating.AttachPoints,
+			)
+			offset.X += el.decl.Floating.Offset.X
+			offset.Y += el.decl.Floating.Offset.Y
+		}
+		Clay__RenderElementRecursive(el, offset, root.zIndex)
+	}
 	// debug
 	Clay__RenderDebugView()
 }

@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"gioui.org/op"
-	"github.com/zodimo/go-clay/clay"
+	"github.com/zodimo/go-clay/kimi2/clay"
 )
 
 // CustomCommandType represents different types of custom commands
@@ -20,7 +20,7 @@ const (
 // CustomCommandHandler defines the interface for handling custom commands
 type CustomCommandHandler interface {
 	// HandleCustomCommand processes a custom command and returns an error if failed
-	HandleCustomCommand(ops *op.Ops, cmd clay.CustomCommand) error
+	HandleCustomCommand(ops *op.Ops, cmd clay.RenderCommand) error
 
 	// GetCommandType returns the type of custom command this handler supports
 	GetCommandType() CustomCommandType
@@ -123,9 +123,17 @@ func (ccr *CustomCommandRegistry) ListHandlers() []string {
 }
 
 // ExecuteCustomCommand executes a custom command using the appropriate handler
-func (ccr *CustomCommandRegistry) ExecuteCustomCommand(ops *op.Ops, cmd clay.CustomCommand) error {
+func (ccr *CustomCommandRegistry) ExecuteCustomCommand(ops *op.Ops, cmd clay.RenderCommand) error {
+	customData, ok := cmd.Data.(CustomCommandData)
+	if !ok {
+		return NewRenderError(
+			ErrorTypeInvalidData,
+			"ExecuteCustomCommand",
+			"Invalid custom command data",
+		)
+	}
 	// Extract command ID from custom data
-	commandID, err := ccr.extractCommandID(cmd.CustomData)
+	commandID, err := ccr.extractCommandID(customData)
 	if err != nil {
 		return err
 	}
@@ -171,11 +179,11 @@ type CustomCommandData struct {
 // CallbackCommandHandler implements custom commands using callback functions
 type CallbackCommandHandler struct {
 	commandID string
-	callback  func(*op.Ops, clay.CustomCommand) error
+	callback  func(*op.Ops, clay.RenderCommand) error
 }
 
 // NewCallbackCommandHandler creates a new callback-based custom command handler
-func NewCallbackCommandHandler(commandID string, callback func(*op.Ops, clay.CustomCommand) error) *CallbackCommandHandler {
+func NewCallbackCommandHandler(commandID string, callback func(*op.Ops, clay.RenderCommand) error) *CallbackCommandHandler {
 	return &CallbackCommandHandler{
 		commandID: commandID,
 		callback:  callback,
@@ -183,7 +191,7 @@ func NewCallbackCommandHandler(commandID string, callback func(*op.Ops, clay.Cus
 }
 
 // HandleCustomCommand implements CustomCommandHandler
-func (cch *CallbackCommandHandler) HandleCustomCommand(ops *op.Ops, cmd clay.CustomCommand) error {
+func (cch *CallbackCommandHandler) HandleCustomCommand(ops *op.Ops, cmd clay.RenderCommand) error {
 	if cch.callback == nil {
 		return NewRenderError(
 			ErrorTypeRenderingFailed,
@@ -220,7 +228,7 @@ func NewOperationCommandHandler(commandID string, operation func(*op.Ops, map[st
 }
 
 // HandleCustomCommand implements CustomCommandHandler
-func (och *OperationCommandHandler) HandleCustomCommand(ops *op.Ops, cmd clay.CustomCommand) error {
+func (och *OperationCommandHandler) HandleCustomCommand(ops *op.Ops, cmd clay.RenderCommand) error {
 	if och.operation == nil {
 		return NewRenderError(
 			ErrorTypeRenderingFailed,
@@ -231,7 +239,7 @@ func (och *OperationCommandHandler) HandleCustomCommand(ops *op.Ops, cmd clay.Cu
 
 	// Extract parameters from custom data
 	var params map[string]interface{}
-	switch data := cmd.CustomData.(type) {
+	switch data := cmd.Data.(type) {
 	case map[string]interface{}:
 		params = data
 	case CustomCommandData:
@@ -295,7 +303,7 @@ func (pch *PluginCommandHandler) LoadPlugin() error {
 }
 
 // HandleCustomCommand implements CustomCommandHandler
-func (pch *PluginCommandHandler) HandleCustomCommand(ops *op.Ops, cmd clay.CustomCommand) error {
+func (pch *PluginCommandHandler) HandleCustomCommand(ops *op.Ops, cmd clay.RenderCommand) error {
 	if pch.plugin == nil {
 		if err := pch.LoadPlugin(); err != nil {
 			return err
@@ -304,7 +312,7 @@ func (pch *PluginCommandHandler) HandleCustomCommand(ops *op.Ops, cmd clay.Custo
 
 	// Extract parameters from custom data
 	var params map[string]interface{}
-	switch data := cmd.CustomData.(type) {
+	switch data := cmd.Data.(type) {
 	case map[string]interface{}:
 		params = data
 	case CustomCommandData:
@@ -330,7 +338,7 @@ func (pch *PluginCommandHandler) GetCommandID() string {
 
 // CreateDebugOverlayHandler creates a debug overlay custom command handler
 func CreateDebugOverlayHandler() CustomCommandHandler {
-	return NewCallbackCommandHandler("debug_overlay", func(ops *op.Ops, cmd clay.CustomCommand) error {
+	return NewCallbackCommandHandler("debug_overlay", func(ops *op.Ops, cmd clay.RenderCommand) error {
 		// This would implement a debug overlay showing render information
 		// For now, it's a placeholder
 		return nil
@@ -348,7 +356,7 @@ func CreatePerformanceProfilerHandler() CustomCommandHandler {
 
 // CreateCustomShapeHandler creates a custom shape rendering command handler
 func CreateCustomShapeHandler() CustomCommandHandler {
-	return NewCallbackCommandHandler("custom_shape", func(ops *op.Ops, cmd clay.CustomCommand) error {
+	return NewCallbackCommandHandler("custom_shape", func(ops *op.Ops, cmd clay.RenderCommand) error {
 		// This would implement custom shape rendering
 		// For now, it's a placeholder
 		return nil

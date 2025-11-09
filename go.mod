@@ -4,7 +4,10 @@ go 1.23.8
 
 toolchain go1.24.3
 
-require gioui.org v0.9.0
+require (
+	gioui.org v0.9.0
+	github.com/veandco/go-sdl2 v0.4.40
+)
 
 require (
 	gioui.org/shader v1.0.8 // indirect

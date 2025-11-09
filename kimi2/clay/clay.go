@@ -1,6 +1,3 @@
-//go:build clay_impl
-// +build clay_impl
-
 package clay
 
 /*
@@ -36,7 +33,7 @@ func CLAY_IDI(s string, idx int) ElementID {
 type Vector2 struct{ X, Y float32 }
 type Dimensions struct{ Width, Height float32 }
 type BoundingBox struct{ X, Y, Width, Height float32 }
-type Color struct{ R, G, B, A uint8 }
+type Color struct{ R, G, B, A float32 }
 
 type LayoutDirection int
 type SizingType int
@@ -604,15 +601,17 @@ func Clay__WrapTextElements() {
 		if cache == nil {
 			continue
 		}
+		// ---------- inside Clay__WrapTextElements() ---------------------------------
 		// wrap
 		lineWidth := float32(0)
 		lineStart := 0
 		lineLen := 0
-		spaceW := gCtx.Measurer.MeasureText(" ", *cfg).Width
+		spaceW := gCtx.Measurer.MeasureText(" ", *cfg).Width // ← now USED
 		td.wrappedLines = nil
 		for w := cache.measuredWordsStart; w >= 0 && int(w) < len(gMeasuredWords); {
 			word := &gMeasuredWords[w]
-			if word.length == 0 { // newline
+			// newline word
+			if word.length == 0 {
 				td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
 					dimensions: Dimensions{Width: lineWidth, Height: cfg.LineHeight},
 					text:       td.text[lineStart : lineStart+lineLen],
@@ -623,36 +622,35 @@ func Clay__WrapTextElements() {
 				w = word.next
 				continue
 			}
-
-			// ==== USE spaceW ====
+			// word alone too big – force it anyway, but trim trailing space
 			if lineLen == 0 && lineWidth+word.width > containerWidth {
-				// word alone too big – force it anyway, but trim trailing space
+				trimW := word.width
+				if word.length > 0 && td.text[word.startOffset+word.length-1] == ' ' {
+					trimW -= spaceW
+				}
 				td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
-					dimensions: Dimensions{Width: word.width - spaceW, Height: cfg.LineHeight},
+					dimensions: Dimensions{Width: trimW, Height: cfg.LineHeight},
 					text:       td.text[word.startOffset : word.startOffset+word.length],
 				})
-				// ...
 				lineWidth = 0
 				lineLen = 0
+				w = word.next
 				continue
 			}
-
-			if lineWidth+word.width > containerWidth && lineLen > 0 {
-				td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
-					dimensions: Dimensions{Width: lineWidth, Height: cfg.LineHeight},
-					text:       td.text[lineStart : lineStart+lineLen],
-				})
-				lineWidth = 0
-				lineStart += lineLen
-				lineLen = 0
-			}
+			// normal accumulate
 			lineWidth += word.width
 			lineLen += int(word.length)
 			w = word.next
 		}
+		// final line
 		if lineLen > 0 {
+			// trim trailing space from final line too (C parity)
+			trimW := lineWidth
+			if lineLen > 0 && td.text[lineStart+lineLen-1] == ' ' {
+				trimW -= spaceW
+			}
 			td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
-				dimensions: Dimensions{Width: lineWidth, Height: cfg.LineHeight},
+				dimensions: Dimensions{Width: trimW, Height: cfg.LineHeight},
 				text:       td.text[lineStart : lineStart+lineLen],
 			})
 		}

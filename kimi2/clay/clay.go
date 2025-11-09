@@ -384,6 +384,7 @@ type layoutElementTreeRoot struct {
 type scrollContainerDataInternal struct {
 	layoutElement  *layoutElement
 	scrollPosition Vector2
+	pointerOrigin  Vector2
 	scrollOrigin   Vector2
 	scrollMomentum Vector2
 	contentSize    Dimensions
@@ -607,7 +608,7 @@ func Clay__WrapTextElements() {
 		lineWidth := float32(0)
 		lineStart := 0
 		lineLen := 0
-		spaceW := gCtx.Measurer.MeasureText(" ", *cfg).Width
+		// spaceW := gCtx.Measurer.MeasureText(" ", *cfg).Width
 		td.wrappedLines = nil
 		for w := cache.measuredWordsStart; w >= 0 && int(w) < len(gMeasuredWords); {
 			word := &gMeasuredWords[w]
@@ -662,76 +663,76 @@ func Clay__AspectRatioCorrect(xAxis bool) {
 }
 
 // ---------- render command generation ---------------------------------------
-func Clay__GenerateRenderCommands() {
-	gCmds = gCmds[:0]
-	// simple DFS
-	var dfs func(el *layoutElement, x, y float32)
-	dfs = func(el *layoutElement, x, y float32) {
-		bb := BoundingBox{
-			X:      x,
-			Y:      y,
-			Width:  el.dimensions.Width,
-			Height: el.dimensions.Height,
-		}
-		// background rect
-		if el.decl.BackgroundColor.A > 0 {
-			gCmds = append(gCmds, RenderCommand{
-				BoundingBox: bb,
-				ID:          el.id,
-				ZIndex:      0,
-				CommandType: CLAY_RENDER_COMMAND_TYPE_RECTANGLE,
-				Data: RectangleRenderData{
-					Color:        el.decl.BackgroundColor,
-					CornerRadius: el.decl.CornerRadius,
-				},
-			})
-		}
-		// text
-		if el.decl.Text != nil {
-			td := &gTextElementData[0]
-			for _, w := range td.wrappedLines {
-				gCmds = append(gCmds, RenderCommand{
-					BoundingBox: BoundingBox{
-						X:      x + el.decl.Layout.Padding.Left,
-						Y:      y + el.decl.Layout.Padding.Top,
-						Width:  w.dimensions.Width,
-						Height: w.dimensions.Height,
-					},
-					ID:          el.id,
-					ZIndex:      0,
-					CommandType: CLAY_RENDER_COMMAND_TYPE_TEXT,
-					Data: TextRenderData{
-						StringContents: w.text,
-						Color:          el.decl.Text.Color,
-						FontID:         el.decl.Text.FontID,
-						FontSize:       el.decl.Text.FontSize,
-						LetterSpacing:  el.decl.Text.LetterSpacing,
-						LineHeight:     el.decl.Text.LineHeight,
-						Alignment:      el.decl.Text.Alignment,
-					},
-				})
-			}
-		}
-		// children
-		cx := x + el.decl.Layout.Padding.Left
-		cy := y + el.decl.Layout.Padding.Top
-		if el.decl.Layout.Direction == CLAY_LEFT_TO_RIGHT {
-			for _, c := range el.children {
-				child := &gElements[c]
-				dfs(child, cx, cy+(el.dimensions.Height-child.dimensions.Height)*0.5) // center y
-				cx += child.dimensions.Width + el.decl.Layout.ChildGap
-			}
-		} else {
-			for _, c := range el.children {
-				child := &gElements[c]
-				dfs(child, cx+(el.dimensions.Width-child.dimensions.Width)*0.5, cy) // center x
-				cy += child.dimensions.Height + el.decl.Layout.ChildGap
-			}
-		}
-	}
-	root := &gElements[0]
-	dfs(root, 0, 0)
-}
+// func Clay__GenerateRenderCommands() {
+// 	gCmds = gCmds[:0]
+// 	// simple DFS
+// 	var dfs func(el *layoutElement, x, y float32)
+// 	dfs = func(el *layoutElement, x, y float32) {
+// 		bb := BoundingBox{
+// 			X:      x,
+// 			Y:      y,
+// 			Width:  el.dimensions.Width,
+// 			Height: el.dimensions.Height,
+// 		}
+// 		// background rect
+// 		if el.decl.BackgroundColor.A > 0 {
+// 			gCmds = append(gCmds, RenderCommand{
+// 				BoundingBox: bb,
+// 				ID:          el.id,
+// 				ZIndex:      0,
+// 				CommandType: CLAY_RENDER_COMMAND_TYPE_RECTANGLE,
+// 				Data: RectangleRenderData{
+// 					Color:        el.decl.BackgroundColor,
+// 					CornerRadius: el.decl.CornerRadius,
+// 				},
+// 			})
+// 		}
+// 		// text
+// 		if el.decl.Text != nil {
+// 			td := &gTextElementData[0]
+// 			for _, w := range td.wrappedLines {
+// 				gCmds = append(gCmds, RenderCommand{
+// 					BoundingBox: BoundingBox{
+// 						X:      x + el.decl.Layout.Padding.Left,
+// 						Y:      y + el.decl.Layout.Padding.Top,
+// 						Width:  w.dimensions.Width,
+// 						Height: w.dimensions.Height,
+// 					},
+// 					ID:          el.id,
+// 					ZIndex:      0,
+// 					CommandType: CLAY_RENDER_COMMAND_TYPE_TEXT,
+// 					Data: TextRenderData{
+// 						StringContents: w.text,
+// 						Color:          el.decl.Text.Color,
+// 						FontID:         el.decl.Text.FontID,
+// 						FontSize:       el.decl.Text.FontSize,
+// 						LetterSpacing:  el.decl.Text.LetterSpacing,
+// 						LineHeight:     el.decl.Text.LineHeight,
+// 						Alignment:      el.decl.Text.Alignment,
+// 					},
+// 				})
+// 			}
+// 		}
+// 		// children
+// 		cx := x + el.decl.Layout.Padding.Left
+// 		cy := y + el.decl.Layout.Padding.Top
+// 		if el.decl.Layout.Direction == CLAY_LEFT_TO_RIGHT {
+// 			for _, c := range el.children {
+// 				child := &gElements[c]
+// 				dfs(child, cx, cy+(el.dimensions.Height-child.dimensions.Height)*0.5) // center y
+// 				cx += child.dimensions.Width + el.decl.Layout.ChildGap
+// 			}
+// 		} else {
+// 			for _, c := range el.children {
+// 				child := &gElements[c]
+// 				dfs(child, cx+(el.dimensions.Width-child.dimensions.Width)*0.5, cy) // center x
+// 				cy += child.dimensions.Height + el.decl.Layout.ChildGap
+// 			}
+// 		}
+// 	}
+// 	root := &gElements[0]
+// 	dfs(root, 0, 0)
+// }
 
 // ---------- arena -----------------------------------------------------------
 type Arena struct {
@@ -755,18 +756,16 @@ func (a *Arena) Alloc(size uintptr) unsafe.Pointer {
 func (a *Arena) Reset() { a.used = 0 }
 
 // ---------- persistent / ephemeral init -------------------------------------
-func Clay__InitPersistent() {
-	// nothing dynamic for now
-}
-func Clay__InitEphemeral() {
-	gElements = gElements[:0]
-	gTextElementData = gTextElementData[:0]
-	gMeasuredWords = gMeasuredWords[:0]
-	gMeasureTextCache = gMeasureTextCache[:0]
-	gLayoutElementTreeRoots = gLayoutElementTreeRoots[:0]
-	gScrollContainers = gScrollContainers[:0]
-	gOpenClipStack = gOpenClipStack[:0]
-}
+
+// func Clay__InitEphemeral() {
+// 	gElements = gElements[:0]
+// 	gTextElementData = gTextElementData[:0]
+// 	gMeasuredWords = gMeasuredWords[:0]
+// 	gMeasureTextCache = gMeasureTextCache[:0]
+// 	gLayoutElementTreeRoots = gLayoutElementTreeRoots[:0]
+// 	gScrollContainers = gScrollContainers[:0]
+// 	gOpenClipStack = gOpenClipStack[:0]
+// }
 
 // ---------- tiny utils ------------------------------------------------------
 func max32(a, b float32) float32 {

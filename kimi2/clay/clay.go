@@ -608,7 +608,7 @@ func Clay__WrapTextElements() {
 		lineWidth := float32(0)
 		lineStart := 0
 		lineLen := 0
-		// spaceW := gCtx.Measurer.MeasureText(" ", *cfg).Width
+		spaceW := gCtx.Measurer.MeasureText(" ", *cfg).Width
 		td.wrappedLines = nil
 		for w := cache.measuredWordsStart; w >= 0 && int(w) < len(gMeasuredWords); {
 			word := &gMeasuredWords[w]
@@ -623,6 +623,20 @@ func Clay__WrapTextElements() {
 				w = word.next
 				continue
 			}
+
+			// ==== USE spaceW ====
+			if lineLen == 0 && lineWidth+word.width > containerWidth {
+				// word alone too big – force it anyway, but trim trailing space
+				td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
+					dimensions: Dimensions{Width: word.width - spaceW, Height: cfg.LineHeight},
+					text:       td.text[word.startOffset : word.startOffset+word.length],
+				})
+				// ...
+				lineWidth = 0
+				lineLen = 0
+				continue
+			}
+
 			if lineWidth+word.width > containerWidth && lineLen > 0 {
 				td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
 					dimensions: Dimensions{Width: lineWidth, Height: cfg.LineHeight},

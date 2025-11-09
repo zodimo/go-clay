@@ -565,8 +565,46 @@ func Clay__CalculateFinalLayout() {
 	Clay__SizeContainersAlongAxis(false)
 	// aspect ratio on x
 	Clay__AspectRatioCorrect(true)
+	// Calculate bounding boxes and setup tree roots
+	Clay__CalculateBoundingBoxes()
 	// generate render commands
 	Clay__GenerateRenderCommands()
+}
+
+func Clay__CalculateBoundingBoxes() {
+	// Clear previous data
+	gLayoutElementTreeRoots = gLayoutElementTreeRoots[:0]
+
+	// Calculate bounding boxes for all elements
+	for i := range gElements {
+		el := &gElements[i]
+
+		// Calculate bounding box (simplified - you'd need proper positioning logic)
+		bb := BoundingBox{
+			X:      0, // This should be calculated based on parent/child relationships
+			Y:      0, // This should be calculated based on parent/child relationships
+			Width:  el.dimensions.Width,
+			Height: el.dimensions.Height,
+		}
+
+		// Add to hash map
+		Clay__AddHashMapItem(el.id, el)
+
+		// Update the hash map item with bounding box
+		if item := Clay__GetHashMapItem(el.id); item != nil {
+			item.boundingBox = bb
+		}
+
+		// Add to layout tree roots if it's a root element
+		if i == 0 { // Root element
+			gLayoutElementTreeRoots = append(gLayoutElementTreeRoots, layoutElementTreeRoot{
+				elementIndex: int32(i),
+				parentID:     0,
+				clipID:       0,
+				zIndex:       0,
+			})
+		}
+	}
 }
 
 func Clay__SizeContainersAlongAxis(xAxis bool) {
@@ -1055,7 +1093,7 @@ func Clay__RenderDebugView() {
 			ZIndex:      32767,
 			CommandType: CLAY_RENDER_COMMAND_TYPE_BORDER,
 			Data: BorderRenderData{
-				Color:        Color{255, 0, 255, 100},
+				Color:        Color{1, 0, 1, 0.4}, // Fixed: Use 0-1 range instead of 255,0,255,100
 				Width:        BorderWidth{Left: 1, Right: 1, Top: 1, Bottom: 1},
 				CornerRadius: el.decl.CornerRadius,
 			},
@@ -1107,6 +1145,26 @@ func Clay__InitEphemeral() {
 // replace the old dfs() call in Clay__GenerateRenderCommands() with this one:
 func Clay__GenerateRenderCommands() {
 	gCmds = gCmds[:0]
+
+	// Process regular elements first
+	for i := range gElements {
+		el := &gElements[i]
+
+		// Skip floating elements (they're handled separately)
+		if el.decl.Floating != nil {
+			continue
+		}
+
+		// Get the element's bounding box
+		it := Clay__GetHashMapItem(el.id)
+		if it == nil {
+			continue
+		}
+
+		// Render this element
+		Clay__RenderElementRecursive(el, Vector2{X: it.boundingBox.X, Y: it.boundingBox.Y}, 0)
+	}
+
 	// floating roots first
 	Clay__SortFloatingRoots()
 	for _, fr := range gFloatingRoots {

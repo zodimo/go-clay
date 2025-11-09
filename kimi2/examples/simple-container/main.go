@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -28,8 +29,15 @@ func main() {
 	app.Main()
 }
 
+var (
+	renderer  *gioui.GioRenderer
+	clayReady bool
+)
+
 func run(w *app.Window) error {
 	var ops op.Ops
+
+	clay.Clay_SetDebugModeEnabled(true)
 
 	for {
 		switch e := w.Event().(type) {
@@ -38,25 +46,30 @@ func run(w *app.Window) error {
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
 
-			// Create Clay layout engine and Gio renderer
-			renderer := gioui.NewRenderer(&ops)
-
-			// Set viewport
-			viewport := clay.BoundingBox{
-				X:      0,
-				Y:      0,
-				Width:  float32(gtx.Constraints.Max.X),
-				Height: float32(gtx.Constraints.Max.Y),
+			if renderer == nil {
+				renderer = gioui.NewRenderer(gtx.Ops)
 			}
-			renderer.SetViewport(viewport)
+			if !clayReady {
+				clay.Clay_Initialize(1<<20,
+					clay.Dimensions{
+						Width:  float32(gtx.Constraints.Max.X),
+						Height: float32(gtx.Constraints.Max.Y),
+					},
+					gioui.NewMeasurer(),
+				)
+				clayReady = true
+			}
 
-			// Set layout dimensions
-			clay.Clay_Initialize(1<<20, clay.Dimensions{Width: float32(gtx.Constraints.Max.X), Height: float32(gtx.Constraints.Max.Y)}, gioui.NewMeasurer())
+			log.Printf("window size: %v", gtx.Constraints.Max)
+			clay.Clay_SetLayoutDimensions(
+				clay.Dimensions{
+					Width:  float32(gtx.Constraints.Max.X),
+					Height: float32(gtx.Constraints.Max.Y),
+				},
+			)
 
-			// Begin layout
+			// 2. Build Clay layout
 			clay.Clay_BeginLayout()
-
-			// Create the main container using engine methods directly
 			main := clay.CLAY(clay.ElementDeclaration{
 				ID: clay.CLAY_ID("main"),
 				Layout: clay.LayoutConfig{
@@ -66,17 +79,11 @@ func run(w *app.Window) error {
 					},
 					Padding: clay.CLAY_PADDING_ALL(16),
 				},
-				BackgroundColor: clay.Color{R: 0.9, G: 0.2, B: 0.2, A: 1.0}, // Bright red for visibility
-				CornerRadius: clay.CornerRadius{
-					TopLeft:     10.0,
-					TopRight:    10.0,
-					BottomLeft:  10.0,
-					BottomRight: 10.0,
-				},
+				BackgroundColor: clay.Color{R: 0.9, G: 0.2, B: 0.2, A: 1},
+				CornerRadius:    clay.CLAY_CORNER_RADIUS(10),
 			})
 
-			// Add text element
-			clay.CLAY(clay.ElementDeclaration{
+			inner := clay.CLAY(clay.ElementDeclaration{
 				ID: clay.CLAY_ID("hello-text"),
 				Layout: clay.LayoutConfig{
 					Sizing: clay.Sizing{
@@ -84,31 +91,33 @@ func run(w *app.Window) error {
 						Height: clay.CLAY_SIZING_FIXED(50),
 					},
 				},
-				BackgroundColor: clay.Color{R: 0.2, G: 0.2, B: 0.9, A: 1.0}, // Blue background for text
-				CornerRadius: clay.CornerRadius{
-					TopLeft:     5.0,
-					TopRight:    5.0,
-					BottomLeft:  5.0,
-					BottomRight: 5.0,
-				},
-			}).Text("Hello, world!", clay.TextElementConfig{
-				FontSize:   24,
-				LineHeight: 1.2,
-				Color:      clay.Color{R: 1.0, G: 1.0, B: 1.0, A: 1.0},
-				FontID:     0,
-			}).End()
-
+				BackgroundColor: clay.Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
+				CornerRadius:    clay.CLAY_CORNER_RADIUS(5),
+			}).Text("H!", clay.TextElementConfig{
+				FontSize: 24,
+				// LineHeight: 48,
+				Color:  clay.Color{R: 1, G: 1, B: 1, A: 1},
+				FontID: 0,
+			})
+			inner.End()
 			main.End()
 
-			// End layout and get render commands
 			commands := clay.Clay_EndLayout()
 
-			// Render with Gio using unified Render method
-			renderer.BeginFrame()
-			if err := renderer.Render(commands); err != nil {
-				log.Printf("Render error: %v", err)
+			fmt.Printf("Generated %d render commands\n", len(commands))
+			for i, cmd := range commands {
+				fmt.Printf("Command %d: Type=%d, ID=%d, Bounds=%+v\n",
+					i, cmd.CommandType, cmd.ID, cmd.BoundingBox)
 			}
-			renderer.EndFrame()
+
+			renderer.SetViewport(clay.BoundingBox{
+				X: 0, Y: 0,
+				Width:  float32(gtx.Constraints.Max.X),
+				Height: float32(gtx.Constraints.Max.Y),
+			})
+			if err := renderer.Render(commands); err != nil {
+				log.Printf("render error: %v", err)
+			}
 
 			e.Frame(gtx.Ops)
 		}

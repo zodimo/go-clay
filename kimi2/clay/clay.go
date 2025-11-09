@@ -334,8 +334,10 @@ type layoutElement struct {
 	dimensions            Dimensions
 	minDimensions         Dimensions
 	floatingChildrenCount int
+	childrenOrTextContent struct {
+		textElementData *textElementData // Add this field
+	}
 }
-
 type measuredWord struct {
 	startOffset int32
 	length      int32
@@ -413,11 +415,22 @@ func Clay__ConfigureOpenElement(decl ElementDeclaration) {
 	gElements[idx].decl = decl
 }
 func Clay__OpenTextElement(text string, cfg TextElementConfig) {
-	// measure
+	// Get the currently open parent element (the container)
+	parentIdx := gStack[len(gStack)-1]
+	parent := &gElements[parentIdx]
+
+	// Measure the text first
 	sz := gCtx.Measurer.MeasureText(text, cfg)
-	// cache measurement
+
+	// fmt.Printf("DEBUG: OpenTextElement - text='%s', cfg.LineHeight=%f, sz.Height=%f\n", text, cfg.LineHeight, sz.Height)
+
+	if cfg.LineHeight <= 0 {
+		cfg.LineHeight = sz.Height
+	}
+
+	// Cache measurement
 	item := measureTextCacheItem{
-		id:                  0, // filled below
+		id:                  0, // Will be filled below
 		unwrappedDimensions: sz,
 		minWidth:            sz.Width,
 		containsNewlines:    false,
@@ -425,7 +438,8 @@ func Clay__OpenTextElement(text string, cfg TextElementConfig) {
 		next:                -1,
 		generation:          0,
 	}
-	// split into words
+
+	// Split into words and cache (existing word splitting code)
 	start := 0
 	var prev *measuredWord
 	for i := 0; i <= len(text); i++ {
@@ -452,7 +466,6 @@ func Clay__OpenTextElement(text string, cfg TextElementConfig) {
 			}
 			if i < len(text) && text[i] == '\n' {
 				item.containsNewlines = true
-				// force newline word
 				nl := measuredWord{startOffset: int32(i), length: 0, width: 0, next: -1}
 				gMeasuredWords = append(gMeasuredWords, nl)
 				if prev != nil {
@@ -466,23 +479,28 @@ func Clay__OpenTextElement(text string, cfg TextElementConfig) {
 			start = i + 1
 		}
 	}
+
+	// Store the measurement cache item
 	gMeasureTextCache = append(gMeasureTextCache, item)
-	// create text element
-	parentIdx := gStack[len(gStack)-1]
-	textIdx := int32(len(gElements))
-	gElements = append(gElements, layoutElement{
-		id:            gNextID,
-		decl:          ElementDeclaration{Text: &cfg},
-		dimensions:    sz,
-		minDimensions: Dimensions{Width: item.minWidth, Height: sz.Height},
-	})
+
+	// Store text data on the PARENT element, not create a new element
+	textIdx := int32(len(gTextElementData))
 	gTextElementData = append(gTextElementData, textElementData{
 		text:         text,
 		prefDim:      sz,
-		elementIndex: textIdx,
+		elementIndex: parentIdx, // Link to parent element
 	})
-	gElements[parentIdx].children = append(gElements[parentIdx].children, textIdx)
-	gNextID++
+
+	// Set the parent's text configuration and data reference
+	parent.decl.Text = &cfg
+	parent.childrenOrTextContent.textElementData = &gTextElementData[len(gTextElementData)-1]
+
+	// Update parent dimensions to include text
+	parent.dimensions = sz
+	parent.minDimensions = Dimensions{Width: item.minWidth, Height: sz.Height}
+
+	// Add text element data index to parent's children (so it gets processed during layout)
+	parent.children = append(parent.children, textIdx)
 }
 func Clay__CloseElement() {
 	if len(gStack) == 0 {
@@ -524,31 +542,50 @@ func Clay__CloseElement() {
 		el.dimensions.Width = w
 		el.dimensions.Height = h
 	}
-	// apply sizing config
+	// Apply sizing config - FIXED should not be overridden by text measurement
 	sx := decl.Layout.Sizing.Width
 	switch sx.Type {
 	case CLAY__SIZING_TYPE_FIXED:
 		el.dimensions.Width = sx.Min
+		// Don't override fixed width with text measurement
 	case CLAY__SIZING_TYPE_PERCENT:
 		// resolved later
 	case CLAY__SIZING_TYPE_GROW:
 		// resolved later
+	case CLAY__SIZING_TYPE_FIT:
+		// Text can affect FIT sizing
+		if el.decl.Text != nil && el.childrenOrTextContent.textElementData != nil {
+			td := el.childrenOrTextContent.textElementData
+			naturalWidth := td.prefDim.Width
+			if naturalWidth > el.dimensions.Width {
+				el.dimensions.Width = naturalWidth + decl.Layout.Padding.Left + decl.Layout.Padding.Right
+			}
+		}
 	}
+
 	sy := decl.Layout.Sizing.Height
 	switch sy.Type {
 	case CLAY__SIZING_TYPE_FIXED:
 		el.dimensions.Height = sy.Min
+		// Don't override fixed height with text measurement
 	case CLAY__SIZING_TYPE_PERCENT:
 		// resolved later
 	case CLAY__SIZING_TYPE_GROW:
 		// resolved later
-	}
-	// aspect ratio
-	if decl.AspectRatio != nil {
-		if el.dimensions.Width == 0 && el.dimensions.Height != 0 {
-			el.dimensions.Width = el.dimensions.Height * decl.AspectRatio.AspectRatio
-		} else if el.dimensions.Height == 0 && el.dimensions.Width != 0 {
-			el.dimensions.Height = el.dimensions.Width / decl.AspectRatio.AspectRatio
+	case CLAY__SIZING_TYPE_FIT:
+		// Text can affect FIT height
+		if el.decl.Text != nil && el.childrenOrTextContent.textElementData != nil {
+			td := el.childrenOrTextContent.textElementData
+			cfg := el.decl.Text
+			naturalLineHeight := td.prefDim.Height
+			finalLineHeight := cfg.LineHeight
+			if finalLineHeight == 0 {
+				finalLineHeight = naturalLineHeight
+			}
+			textHeight := finalLineHeight * float32(len(td.wrappedLines))
+			if textHeight > el.dimensions.Height {
+				el.dimensions.Height = textHeight + decl.Layout.Padding.Top + decl.Layout.Padding.Bottom
+			}
 		}
 	}
 }
@@ -624,10 +661,12 @@ func Clay__WrapTextElements() {
 		td := &gTextElementData[i]
 		el := &gElements[td.elementIndex]
 		cfg := el.decl.Text
+
 		containerWidth := el.dimensions.Width - el.decl.Layout.Padding.Left - el.decl.Layout.Padding.Right
 		if containerWidth <= 0 {
 			continue
 		}
+
 		// find cache
 		var cache *measureTextCacheItem
 		for j := range gMeasureTextCache {
@@ -639,62 +678,115 @@ func Clay__WrapTextElements() {
 		if cache == nil {
 			continue
 		}
-		// ---------- inside Clay__WrapTextElements() ---------------------------------
-		// wrap
+
+		// Calculate the proper line height to use
+		finalLineHeight := cfg.LineHeight
+		if finalLineHeight == 0 {
+			finalLineHeight = td.prefDim.Height // Use measured height if no line height specified
+		}
+
+		// Wrap the text
+		td.wrappedLines = nil
 		lineWidth := float32(0)
 		lineStart := 0
 		lineLen := 0
-		spaceW := gCtx.Measurer.MeasureText(" ", *cfg).Width // ← now USED
-		td.wrappedLines = nil
+		spaceW := gCtx.Measurer.MeasureText(" ", *cfg).Width
+
 		for w := cache.measuredWordsStart; w >= 0 && int(w) < len(gMeasuredWords); {
 			word := &gMeasuredWords[w]
-			// newline word
+
+			// Handle newline words (length == 0 means newline)
 			if word.length == 0 {
+				// Add the current line before the newline
+				if lineLen > 0 {
+					trimW := lineWidth
+					if lineLen > 0 && td.text[lineStart+lineLen-1] == ' ' {
+						trimW -= spaceW
+					}
+					td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
+						dimensions: Dimensions{Width: trimW, Height: finalLineHeight}, // USE finalLineHeight
+						text:       td.text[lineStart : lineStart+lineLen],
+					})
+				}
+
+				// Add empty line for the newline itself
 				td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
-					dimensions: Dimensions{Width: lineWidth, Height: cfg.LineHeight},
-					text:       td.text[lineStart : lineStart+lineLen],
+					dimensions: Dimensions{Width: 0, Height: finalLineHeight}, // USE finalLineHeight
+					text:       "",
 				})
+
+				// Reset for next line
 				lineWidth = 0
-				lineStart += lineLen
+				lineStart += lineLen + 1 // Skip past the newline
 				lineLen = 0
 				w = word.next
 				continue
 			}
-			// word alone too big – force it anyway, but trim trailing space
+
+			// Check if word alone is too big for the line (and it's the first word)
 			if lineLen == 0 && lineWidth+word.width > containerWidth {
+				// Force the word anyway, but trim trailing space
 				trimW := word.width
 				if word.length > 0 && td.text[word.startOffset+word.length-1] == ' ' {
 					trimW -= spaceW
 				}
 				td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
-					dimensions: Dimensions{Width: trimW, Height: cfg.LineHeight},
+					dimensions: Dimensions{Width: trimW, Height: finalLineHeight}, // USE finalLineHeight
 					text:       td.text[word.startOffset : word.startOffset+word.length],
 				})
+
+				// Reset for next line
 				lineWidth = 0
+				lineStart = int(word.startOffset + word.length)
 				lineLen = 0
 				w = word.next
 				continue
 			}
-			// normal accumulate
-			lineWidth += word.width
-			lineLen += int(word.length)
-			w = word.next
+
+			// Normal case - add word to current line
+			if lineWidth+word.width <= containerWidth {
+				// Word fits, add it
+				lineWidth += word.width
+				lineLen += int(word.length)
+				w = word.next
+			} else {
+				// Word doesn't fit, wrap to new line
+				if lineLen > 0 {
+					trimW := lineWidth
+					if lineLen > 0 && td.text[lineStart+lineLen-1] == ' ' {
+						trimW -= spaceW
+					}
+					td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
+						dimensions: Dimensions{Width: trimW, Height: finalLineHeight}, // USE finalLineHeight
+						text:       td.text[lineStart : lineStart+lineLen],
+					})
+				}
+
+				// Reset for new line with current word
+				lineWidth = word.width
+				lineStart = int(word.startOffset)
+				lineLen = int(word.length)
+				w = word.next
+			}
 		}
-		// final line
+
+		// Handle final line
 		if lineLen > 0 {
-			// trim trailing space from final line too (C parity)
 			trimW := lineWidth
 			if lineLen > 0 && td.text[lineStart+lineLen-1] == ' ' {
 				trimW -= spaceW
 			}
 			td.wrappedLines = append(td.wrappedLines, wrappedTextLine{
-				dimensions: Dimensions{Width: trimW, Height: cfg.LineHeight},
+				dimensions: Dimensions{Width: trimW, Height: finalLineHeight}, // USE finalLineHeight
 				text:       td.text[lineStart : lineStart+lineLen],
 			})
 		}
-		// update element height
-		el.dimensions.Height = float32(len(td.wrappedLines))*cfg.LineHeight +
-			el.decl.Layout.Padding.Top + el.decl.Layout.Padding.Bottom
+
+		// Only update container height if it's NOT fixed sizing
+		if el.decl.Layout.Sizing.Height.Type != CLAY__SIZING_TYPE_FIXED {
+			el.dimensions.Height = float32(len(td.wrappedLines))*finalLineHeight +
+				el.decl.Layout.Padding.Top + el.decl.Layout.Padding.Bottom
+		}
 	}
 }
 
@@ -1295,31 +1387,108 @@ func Clay__RenderElementRecursive(el *layoutElement, offset Vector2, z int16) {
 	}
 	// text
 	if el.decl.Text != nil {
-		td := &gTextElementData[0]
-		ox := offset.X + el.decl.Layout.Padding.Left
-		oy := offset.Y + el.decl.Layout.Padding.Top
-		for _, line := range td.wrappedLines {
+		if el.childrenOrTextContent.textElementData == nil {
+			return
+		}
+		td := el.childrenOrTextContent.textElementData
+
+		cfg := el.decl.Text
+		naturalLineHeight := td.prefDim.Height
+		finalLineHeight := cfg.LineHeight
+		if finalLineHeight == 0 {
+			finalLineHeight = naturalLineHeight
+		}
+
+		// Calculate available space
+		availableWidth := el.dimensions.Width - el.decl.Layout.Padding.Left - el.decl.Layout.Padding.Right
+		availableHeight := el.dimensions.Height - el.decl.Layout.Padding.Top - el.decl.Layout.Padding.Bottom
+
+		// Calculate vertical alignment
+		totalTextHeight := finalLineHeight * float32(len(td.wrappedLines))
+		yOffset := float32(0)
+		if totalTextHeight < availableHeight {
+			yOffset = (availableHeight - totalTextHeight) / 2
+		}
+
+		// If no wrapped lines exist, create a single line with the full text
+		if len(td.wrappedLines) == 0 {
+			// Create a single line with the measured dimensions
+			ox := offset.X + el.decl.Layout.Padding.Left
+			oy := offset.Y + el.decl.Layout.Padding.Top + yOffset
+
+			// Calculate horizontal alignment for single line
+			xOffset := float32(0)
+			if cfg.Alignment == CLAY_TEXT_ALIGN_CENTER {
+				xOffset = (availableWidth - td.prefDim.Width) / 2
+			} else if cfg.Alignment == CLAY_TEXT_ALIGN_RIGHT {
+				xOffset = availableWidth - td.prefDim.Width
+			}
+
 			gCmds = append(gCmds, RenderCommand{
 				BoundingBox: BoundingBox{
-					X:      ox,
+					X:      ox + xOffset,
 					Y:      oy,
-					Width:  line.dimensions.Width,
-					Height: line.dimensions.Height,
+					Width:  td.prefDim.Width,
+					Height: finalLineHeight, // Use finalLineHeight, not td.prefDim.Height
 				},
 				ID:          el.id + 0x20000000,
 				ZIndex:      z,
 				CommandType: CLAY_RENDER_COMMAND_TYPE_TEXT,
 				Data: TextRenderData{
-					StringContents: line.text,
-					Color:          el.decl.Text.Color,
-					FontID:         el.decl.Text.FontID,
-					FontSize:       el.decl.Text.FontSize,
-					LetterSpacing:  el.decl.Text.LetterSpacing,
-					LineHeight:     el.decl.Text.LineHeight,
-					Alignment:      el.decl.Text.Alignment,
+					StringContents: td.text,
+					Color:          cfg.Color,
+					FontID:         cfg.FontID,
+					FontSize:       cfg.FontSize,
+					LetterSpacing:  cfg.LetterSpacing,
+					LineHeight:     cfg.LineHeight,
+					Alignment:      cfg.Alignment,
 				},
 			})
-			oy += line.dimensions.Height
+			return
+		}
+
+		// Render wrapped lines (existing code)
+		yPosition := yOffset
+		for lineIndex := 0; lineIndex < len(td.wrappedLines); lineIndex++ {
+			line := td.wrappedLines[lineIndex]
+			if len(line.text) == 0 {
+				yPosition += finalLineHeight
+				continue
+			}
+
+			// Calculate horizontal alignment
+			xOffset := float32(0)
+			if cfg.Alignment == CLAY_TEXT_ALIGN_CENTER {
+				xOffset = (availableWidth - line.dimensions.Width) / 2
+			} else if cfg.Alignment == CLAY_TEXT_ALIGN_RIGHT {
+				xOffset = availableWidth - line.dimensions.Width
+			}
+
+			ox := offset.X + el.decl.Layout.Padding.Left + xOffset
+			oy := offset.Y + el.decl.Layout.Padding.Top + yPosition
+
+			gCmds = append(gCmds, RenderCommand{
+				BoundingBox: BoundingBox{
+					X:      ox,
+					Y:      oy,
+					Width:  line.dimensions.Width,
+					Height: finalLineHeight, // Always use finalLineHeight
+				},
+				ID:          el.id + uint32(lineIndex)*0x10000000,
+				ZIndex:      z,
+				CommandType: CLAY_RENDER_COMMAND_TYPE_TEXT,
+				Data: TextRenderData{
+					StringContents: line.text,
+					Color:          cfg.Color,
+					FontID:         cfg.FontID,
+					FontSize:       cfg.FontSize,
+					LetterSpacing:  cfg.LetterSpacing,
+					LineHeight:     cfg.LineHeight,
+					Alignment:      cfg.Alignment,
+				},
+			})
+
+			yPosition += finalLineHeight
 		}
 	}
 	// children

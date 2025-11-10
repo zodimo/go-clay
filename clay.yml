@@ -28,30 +28,62 @@ TRANSLATOR:
   ConstRules:
     defines: eval
     enum: cgo
+  PtrTips:
+    function:
+      # Array access functions - first param is array pointer, return is element pointer
+      - {target: "^Clay_RenderCommandArray_Get$", tips: [ref, 0, ref]}
+      # Callback function pointers - first param is function pointer, second is userData
+      - {target: "^Clay_SetMeasureTextFunction$", tips: [ref, 0]}
+      - {target: "^Clay_SetQueryScrollOffsetFunction$", tips: [ref, 0]}
+      - {target: "^Clay_OnHover$", tips: [ref, 0]}
+      # Initialize - third param is ErrorHandler struct (not pointer)
+      - {target: "^Clay_Initialize$", tips: [0, 0, 0]}
   Rules:
     global:
-      # Accept all public Clay_ functions and types
+      # Accept all public Clay_ functions and types (single underscore)
       - {action: accept, from: "^Clay_[A-Z]"}
-      # Reject internal functions (Clay__ prefix)
+      # Reject internal functions and types (Clay__ double underscore prefix)
       - {action: ignore, from: "^Clay__"}
-      # Reject internal macros (CLAY__ prefix)
+      # Reject internal macros (CLAY__ double underscore prefix)
       - {action: ignore, from: "^CLAY__"}
-      # Accept public enums and constants
-      - {action: accept, from: "^CLAY_[A-Z_]"}
+      # Accept public enums and constants (CLAY_ single underscore)
+      - {action: accept, from: "^CLAY_[A-Z_][A-Z0-9_]*$"}
       # Remove Clay_ prefix from public API
       - {action: replace, from: "^Clay_", to: ""}
       # Transform to exported Go names
       - {transform: export}
     const:
-      # Accept public constants
-      - {action: accept, from: "^CLAY_[A-Z_]"}
+      # Accept public constants (CLAY_ prefix, not CLAY__)
+      - {action: accept, from: "^CLAY_[A-Z_][A-Z0-9_]*$"}
+      # Reject internal constants (CLAY__ double underscore)
+      - {action: ignore, from: "^CLAY__"}
       # Remove CLAY_ prefix from constants
       - {action: replace, from: "^CLAY_", to: ""}
       # Transform to exported Go names
       - {transform: export}
     type:
-      # Remove _t suffix from type names
+      # Accept all Clay_ types (single underscore)
+      - {action: accept, from: "^Clay_[A-Z]"}
+      # Reject internal types (Clay__ double underscore)
+      - {action: ignore, from: "^Clay__"}
+      # Remove Clay_ prefix from types
+      - {action: replace, from: "^Clay_", to: ""}
+      # Remove _t suffix from type names if present
       - {action: replace, from: "_t$", to: ""}
+      # Transform to exported Go names
+      - {transform: export}
+    function:
+      # Accept all public Clay_ functions
+      - {action: accept, from: "^Clay_[A-Z]"}
+      # Reject internal functions (Clay__ double underscore)
+      - {action: ignore, from: "^Clay__"}
+      # Remove Clay_ prefix from functions
+      - {action: replace, from: "^Clay_", to: ""}
+      # Transform to exported Go names
+      - {transform: export}
+    private:
+      # Unexport private/internal names
+      - {transform: unexport}
     post-global:
-      # Apply snake_case transformation
+      # Apply snake_case transformation for better Go naming
       - {load: snakecase}

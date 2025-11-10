@@ -7,6 +7,7 @@ Only SIMD hashes removed (uses Go hash/fnv); everything else is line-for-line.
 
 import (
 	"hash/fnv"
+	"strconv"
 	"unsafe"
 )
 
@@ -265,6 +266,9 @@ func CLAY__CONFIG_WRAPPER[T any](v T) ConfigWrapper[T] { return ConfigWrapper[T]
 type ElementScope struct{ decl ElementDeclaration }
 
 func CLAY(decl ElementDeclaration) *ElementScope {
+	if decl.ID == 0 {
+		decl.ID = CLAY_ID("Clay__Element_" + strconv.Itoa(len(gElements)))
+	}
 	Clay__OpenElementWithId(decl.ID)
 	Clay__ConfigureOpenElement(decl)
 	return &ElementScope{decl: decl}

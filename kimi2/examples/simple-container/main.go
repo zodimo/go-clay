@@ -71,7 +71,7 @@ func run(w *app.Window) error {
 			// 2. Build Clay layout
 			clay.Clay_BeginLayout()
 			main := clay.CLAY(clay.ElementDeclaration{
-				ID: clay.CLAY_ID("main"),
+				// ID: clay.CLAY_ID("main"),
 				Layout: clay.LayoutConfig{
 					Sizing: clay.Sizing{
 						Width:  clay.CLAY_SIZING_FIXED(400),

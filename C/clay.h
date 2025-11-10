@@ -1391,7 +1391,12 @@ Clay_ElementId Clay__HashString(Clay_String key, const uint32_t seed) {
     hash += (hash << 3);
     hash ^= (hash >> 11);
     hash += (hash << 15);
-    return CLAY__INIT(Clay_ElementId) { .id = hash + 1, .offset = 0, .baseId = hash + 1, .stringId = key }; // Reserve the hash result of zero as "null id"
+    return CLAY__INIT(Clay_ElementId) { 
+        .id = hash + 1, 
+        .offset = 0, 
+        .baseId = hash + 1, 
+        .stringId = key 
+    }; // Reserve the hash result of zero as "null id"
 }
 
 Clay_ElementId Clay__HashStringWithOffset(Clay_String key, const uint32_t offset, const uint32_t seed) {

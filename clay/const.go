@@ -12,3 +12,10 @@ package clay
 #include "cgo_helpers.h"
 */
 import "C"
+
+const (
+	// HEADER as defined in go-clay/<predefined>:402
+	HEADER = 1
+)
+
+const ()

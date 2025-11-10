@@ -1,0 +1,57 @@
+# c-for-go configuration file for Clay library
+# This file configures the generation of Go bindings from C/clay.h
+# 
+# Usage: c-for-go clay.yml
+
+GENERATOR:
+  PackageName: clay
+  PackageDescription: "Package clay provides Go bindings for the Clay UI layout library. Clay is a high-performance, render engine agnostic UI layout library."
+  PackageLicense: "MIT"
+  Includes:
+    - "clay.h"
+  FlagGroups:
+    - {name: "CFLAGS", flags: ["-I../C"]}
+  Options:
+    SafeStrings: true
+
+PARSER:
+  IncludePaths:
+    - "C"
+  SourcesPaths:
+    - "C/clay.h"
+  Defines:
+    CLAY_HEADER: 1
+
+TRANSLATOR:
+  ConstCharIsString: true
+  ConstUCharIsString: false
+  ConstRules:
+    defines: eval
+    enum: cgo
+  Rules:
+    global:
+      # Accept all public Clay_ functions and types
+      - {action: accept, from: "^Clay_[A-Z]"}
+      # Reject internal functions (Clay__ prefix)
+      - {action: ignore, from: "^Clay__"}
+      # Reject internal macros (CLAY__ prefix)
+      - {action: ignore, from: "^CLAY__"}
+      # Accept public enums and constants
+      - {action: accept, from: "^CLAY_[A-Z_]"}
+      # Remove Clay_ prefix from public API
+      - {action: replace, from: "^Clay_", to: ""}
+      # Transform to exported Go names
+      - {transform: export}
+    const:
+      # Accept public constants
+      - {action: accept, from: "^CLAY_[A-Z_]"}
+      # Remove CLAY_ prefix from constants
+      - {action: replace, from: "^CLAY_", to: ""}
+      # Transform to exported Go names
+      - {transform: export}
+    type:
+      # Remove _t suffix from type names
+      - {action: replace, from: "_t$", to: ""}
+    post-global:
+      # Apply snake_case transformation
+      - {load: snakecase}

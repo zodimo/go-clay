@@ -829,42 +829,53 @@ typedef struct {
 
 // Returns the size, in bytes, of the minimum amount of memory Clay requires to operate at its current settings.
 CLAY_DLL_EXPORT uint32_t Clay_MinMemorySize(void);
+
 // Creates an arena for clay to use for its internal allocations, given a certain capacity in bytes and a pointer to an allocation of at least that size.
 // Intended to be used with Clay_MinMemorySize in the following way:
 // uint32_t minMemoryRequired = Clay_MinMemorySize();
 // Clay_Arena clayMemory = Clay_CreateArenaWithCapacityAndMemory(minMemoryRequired, malloc(minMemoryRequired));
 CLAY_DLL_EXPORT Clay_Arena Clay_CreateArenaWithCapacityAndMemory(size_t capacity, void *memory);
+
 // Sets the state of the "pointer" (i.e. the mouse or touch) in Clay's internal data. Used for detecting and responding to mouse events in the debug view,
 // as well as for Clay_Hovered() and scroll element handling.
 CLAY_DLL_EXPORT void Clay_SetPointerState(Clay_Vector2 position, bool pointerDown);
+
 // Initialize Clay's internal arena and setup required data before layout can begin. Only needs to be called once.
 // - arena can be created using Clay_CreateArenaWithCapacityAndMemory()
 // - layoutDimensions are the initial bounding dimensions of the layout (i.e. the screen width and height for a full screen layout)
 // - errorHandler is used by Clay to inform you if something has gone wrong in configuration or layout.
 CLAY_DLL_EXPORT Clay_Context* Clay_Initialize(Clay_Arena arena, Clay_Dimensions layoutDimensions, Clay_ErrorHandler errorHandler);
+
 // Returns the Context that clay is currently using. Used when using multiple instances of clay simultaneously.
 CLAY_DLL_EXPORT Clay_Context* Clay_GetCurrentContext(void);
 // Sets the context that clay will use to compute the layout.
 // Used to restore a context saved from Clay_GetCurrentContext when using multiple instances of clay simultaneously.
 CLAY_DLL_EXPORT void Clay_SetCurrentContext(Clay_Context* context);
+
 // Updates the state of Clay's internal scroll data, updating scroll content positions if scrollDelta is non zero, and progressing momentum scrolling.
 // - enableDragScrolling when set to true will enable mobile device like "touch drag" scroll of scroll containers, including momentum scrolling after the touch has ended.
 // - scrollDelta is the amount to scroll this frame on each axis in pixels.
 // - deltaTime is the time in seconds since the last "frame" (scroll update)
 CLAY_DLL_EXPORT void Clay_UpdateScrollContainers(bool enableDragScrolling, Clay_Vector2 scrollDelta, float deltaTime);
+
 // Returns the internally stored scroll offset for the currently open element.
 // Generally intended for use with clip elements to create scrolling containers.
 CLAY_DLL_EXPORT Clay_Vector2 Clay_GetScrollOffset(void);
+
 // Updates the layout dimensions in response to the window or outer container being resized.
 CLAY_DLL_EXPORT void Clay_SetLayoutDimensions(Clay_Dimensions dimensions);
+
 // Called before starting any layout declarations.
 CLAY_DLL_EXPORT void Clay_BeginLayout(void);
+
 // Called when all layout declarations are finished.
 // Computes the layout and generates and returns the array of render commands to draw.
 CLAY_DLL_EXPORT Clay_RenderCommandArray Clay_EndLayout(void);
+
 // Calculates a hash ID from the given idString.
 // Generally only used for dynamic strings when CLAY_ID("stringLiteral") can't be used.
 CLAY_DLL_EXPORT Clay_ElementId Clay_GetElementId(Clay_String idString);
+
 // Calculates a hash ID from the given idString and index.
 // - index is used to avoid constructing dynamic ID strings in loops.
 // Generally only used for dynamic strings when CLAY_IDI("stringLiteral", index) can't be used.

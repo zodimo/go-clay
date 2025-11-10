@@ -168,8 +168,139 @@ func Clay__Array_Allocate_Arena[T any](capacity int32) Clay__Array[T] {
 	}
 }
 
-type Clay_LayoutElement struct{}
-type Clay_RenderCommand struct{}
+type Clay_LayoutElement struct {
+	// union {
+	//     Clay__LayoutElementChildren children;
+	//     Clay__TextElementData *textElementData;
+	// } childrenOrTextContent;
+	Dimensions            Clay_Dimensions
+	MinDimensions         Clay_Dimensions
+	LayoutConfig          Clay_LayoutConfig
+	ElementConfigs        Clay__Array[Clay_ElementConfig] // slice
+	Id                    uint32
+	FloatingChildrenCount uint16
+}
+
+// Used by renderers to determine specific handling for each render command.
+type Clay_RenderCommandType uint8
+
+const (
+	CLAY_RENDER_COMMAND_TYPE_NONE Clay_RenderCommandType = iota
+	CLAY_RENDER_COMMAND_TYPE_RECTANGLE
+	CLAY_RENDER_COMMAND_TYPE_BORDER
+	CLAY_RENDER_COMMAND_TYPE_TEXT
+	CLAY_RENDER_COMMAND_TYPE_IMAGE
+	CLAY_RENDER_COMMAND_TYPE_SCISSOR_START
+	CLAY_RENDER_COMMAND_TYPE_SCISSOR_END
+	CLAY_RENDER_COMMAND_TYPE_CUSTOM
+)
+
+// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_RECTANGLE
+type Clay_RectangleRenderData struct {
+	// The solid background color to fill this rectangle with. Conventionally represented as 0-255 for each channel, but interpretation is up to the renderer.
+	BackgroundColor Clay_Color
+	// Controls the "radius", or corner rounding of elements, including rectangles, borders and images.
+	// The rounding is determined by drawing a circle inset into the element corner by (radius, radius) pixels.
+	CornerRadius Clay_CornerRadius
+}
+
+// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_TEXT
+type Clay_TextRenderData struct {
+	// A string slice containing the text to be rendered.
+	// Note: this is not guaranteed to be null terminated.
+	StringContents Clay_String // Slice
+	// Conventionally represented as 0-255 for each channel, but interpretation is up to the renderer.
+	TextColor Clay_Color
+	// An integer representing the font to use to render this text, transparently passed through from the text declaration.
+	FontId   uint16
+	FontSize uint16
+	// Specifies the extra whitespace gap in pixels between each character.
+	LetterSpacing uint16
+	// The height of the bounding box for this line of text.
+	LineHeight uint16
+}
+
+// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_IMAGE
+type Clay_ImageRenderData struct {
+	// The tint color for this image. Note that the default value is 0,0,0,0 and should likely be interpreted
+	// as "untinted".
+	// Conventionally represented as 0-255 for each channel, but interpretation is up to the renderer.
+	BackgroundColor Clay_Color
+	// Controls the "radius", or corner rounding of this image.
+	// The rounding is determined by drawing a circle inset into the element corner by (radius, radius) pixels.
+	CornerRadius Clay_CornerRadius
+	// A pointer transparently passed through from the original element definition, typically used to represent image data.
+	ImageData interface{}
+}
+
+// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_CUSTOM
+type Clay_CustomRenderData struct {
+	// Passed through from .backgroundColor in the original element declaration.
+	// Conventionally represented as 0-255 for each channel, but interpretation is up to the renderer.
+	BackgroundColor Clay_Color
+	// Controls the "radius", or corner rounding of this custom element.
+	// The rounding is determined by drawing a circle inset into the element corner by (radius, radius) pixels.
+	CornerRadius Clay_CornerRadius
+	// A pointer transparently passed through from the original element definition.
+	CustomData interface{}
+}
+
+// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_BORDER
+type Clay_BorderRenderData struct {
+	// Controls a shared color for all this element's borders.
+	// Conventionally represented as 0-255 for each channel, but interpretation is up to the renderer.
+	Color Clay_Color
+	// Specifies the "radius", or corner rounding of this border element.
+	// The rounding is determined by drawing a circle inset into the element corner by (radius, radius) pixels.
+	CornerRadius Clay_CornerRadius
+	// Controls individual border side widths.
+	Width Clay_BorderWidth
+}
+
+// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_SCISSOR_START || commandType == CLAY_RENDER_COMMAND_TYPE_SCISSOR_END
+type Clay_ClipRenderData struct {
+	Horizontal bool
+	Vertical   bool
+}
+
+type Clay_RenderData struct {
+	// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_RECTANGLE
+	Rectangle Clay_RectangleRenderData
+	// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_TEXT
+	Text Clay_TextRenderData
+	// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_IMAGE
+	Image Clay_ImageRenderData
+	// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_CUSTOM
+	Custom Clay_CustomRenderData
+	// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_BORDER
+	Border Clay_BorderRenderData
+	// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_SCISSOR_START|END
+	Clip Clay_ClipRenderData
+}
+
+type Clay_RenderCommand struct {
+	// A rectangular box that fully encloses this UI element, with the position relative to the root of the layout.
+	BoundingBox Clay_BoundingBox
+	// A struct union containing data specific to this command's commandType.
+	RenderData Clay_RenderData
+	// A pointer transparently passed through from the original element declaration.
+	UserData interface{}
+	// The id of this element, transparently passed through from the original element declaration.
+	Id uint32
+	// The z order required for drawing this command correctly.
+	// Note: the render command array is already sorted in ascending order, and will produce correct results if drawn in naive order.
+	// This field is intended for use in batching renderers for improved performance.
+	ZIndex int16
+	// Specifies how to handle rendering of this command.
+	// CLAY_RENDER_COMMAND_TYPE_RECTANGLE - The renderer should draw a solid color rectangle.
+	// CLAY_RENDER_COMMAND_TYPE_BORDER - The renderer should draw a colored border inset into the bounding box.
+	// CLAY_RENDER_COMMAND_TYPE_TEXT - The renderer should draw text.
+	// CLAY_RENDER_COMMAND_TYPE_IMAGE - The renderer should draw an image.
+	// CLAY_RENDER_COMMAND_TYPE_SCISSOR_START - The renderer should begin clipping all future draw commands, only rendering content that falls within the provided boundingBox.
+	// CLAY_RENDER_COMMAND_TYPE_SCISSOR_END - The renderer should finish any previously active clipping, and begin rendering elements in full again.
+	// CLAY_RENDER_COMMAND_TYPE_CUSTOM - The renderer should provide a custom implementation for handling this render command based on its .customData
+	CommandType Clay_RenderCommandType
+}
 
 func (a *Clay__Array[T]) Get(index int32) T {
 	return a.InternalArray[index]
@@ -409,13 +540,142 @@ type Clay_Color struct {
 	B float32 // range between 0 and 1
 	A float32 // range between 0 and 1
 }
-type Clay_CornerRadius struct{}
-type Clay_AspectRatioElementConfig struct{}
-type Clay_ImageElementConfig struct{}
-type Clay_FloatingElementConfig struct{}
-type Clay_CustomElementConfig struct{}
-type Clay_ClipElementConfig struct{}
-type Clay_BorderElementConfig struct{}
+type Clay_CornerRadius struct {
+	TopLeft     float32
+	TopRight    float32
+	BottomLeft  float32
+	BottomRight float32
+}
+type Clay_AspectRatioElementConfig struct {
+	AspectRatio float32
+}
+type Clay_ImageElementConfig struct {
+	ImageData interface{}
+}
+
+// Controls where a floating element is offset relative to its parent element.
+// Note: see https://github.com/user-attachments/assets/b8c6dfaa-c1b1-41a4-be55-013473e4a6ce for a visual explanation.
+type Clay_FloatingAttachPointType uint8
+
+const (
+	CLAY_ATTACH_POINT_LEFT_TOP Clay_FloatingAttachPointType = iota
+	CLAY_ATTACH_POINT_LEFT_CENTER
+	CLAY_ATTACH_POINT_LEFT_BOTTOM
+	CLAY_ATTACH_POINT_CENTER_TOP
+	CLAY_ATTACH_POINT_CENTER_CENTER
+	CLAY_ATTACH_POINT_CENTER_BOTTOM
+	CLAY_ATTACH_POINT_RIGHT_TOP
+	CLAY_ATTACH_POINT_RIGHT_CENTER
+	CLAY_ATTACH_POINT_RIGHT_BOTTOM
+)
+
+type Clay_FloatingAttachPoints struct {
+	Element Clay_FloatingAttachPointType
+	Parent  Clay_FloatingAttachPointType
+}
+
+// Controls how mouse pointer events like hover and click are captured or passed through to elements underneath a floating element.
+type Clay_PointerCaptureMode uint8
+
+const (
+	// (default) "Capture" the pointer event and don't allow events like hover and click to pass through to elements underneath.
+
+	CLAY_POINTER_CAPTURE_MODE_CAPTURE Clay_PointerCaptureMode = iota
+	//    CLAY_POINTER_CAPTURE_MODE_PARENT, TODO pass pointer through to attached parent
+
+	// Transparently pass through pointer events like hover and click to elements underneath the floating element.
+
+	CLAY_POINTER_CAPTURE_MODE_PASSTHROUGH
+)
+
+// Controls which element a floating element is "attached" to (i.e. relative offset from).
+type Clay_FloatingAttachToElement uint8
+
+const (
+	// (default) Disables floating for this element.
+	CLAY_ATTACH_TO_NONE Clay_FloatingAttachToElement = iota
+	// Attaches this floating element to its parent, positioned based on the .attachPoints and .offset fields.
+	CLAY_ATTACH_TO_PARENT
+	// Attaches this floating element to an element with a specific ID, specified with the .parentId field. positioned based on the .attachPoints and .offset fields.
+	CLAY_ATTACH_TO_ELEMENT_WITH_ID
+	// Attaches this floating element to the root of the layout, which combined with the .offset field provides functionality similar to "absolute positioning".
+	CLAY_ATTACH_TO_ROOT
+)
+
+// Controls whether or not a floating element is clipped to the same clipping rectangle as the element it's attached to.
+type Clay_FloatingClipToElement uint8
+
+const (
+	// (default) - The floating element does not inherit clipping.
+	CLAY_CLIP_TO_NONE Clay_FloatingClipToElement = iota
+	// The floating element is clipped to the same clipping rectangle as the element it's attached to.
+	CLAY_CLIP_TO_ATTACHED_PARENT
+)
+
+type Clay_FloatingElementConfig struct {
+	// Offsets this floating element by the provided x,y coordinates from its attachPoints.
+	Offset Clay_Vector2
+	// Expands the boundaries of the outer floating element without affecting its children.
+	Expand Clay_Dimensions
+	// When used in conjunction with .attachTo = CLAY_ATTACH_TO_ELEMENT_WITH_ID, attaches this floating element to the element in the hierarchy with the provided ID.
+	// Hint: attach the ID to the other element with .id = CLAY_ID("yourId"), and specify the id the same way, with .parentId = CLAY_ID("yourId").id
+	ParentId uint32
+	// Controls the z index of this floating element and all its children. Floating elements are sorted in ascending z order before output.
+	// zIndex is also passed to the renderer for all elements contained within this floating element.
+	ZIndex int16
+	// Controls how mouse pointer events like hover and click are captured or passed through to elements underneath / behind a floating element.
+	// Enum is of the form CLAY_ATTACH_POINT_foo_bar. See Clay_FloatingAttachPoints for more details.
+	// Note: see <img src="https://github.com/user-attachments/assets/b8c6dfaa-c1b1-41a4-be55-013473e4a6ce />
+	// and <img src="https://github.com/user-attachments/assets/ebe75e0d-1904-46b0-982d-418f929d1516 /> for a visual explanation.
+	AttachPoints Clay_FloatingAttachPoints
+	// Controls how mouse pointer events like hover and click are captured or passed through to elements underneath a floating element.
+	// CLAY_POINTER_CAPTURE_MODE_CAPTURE (default) - "Capture" the pointer event and don't allow events like hover and click to pass through to elements underneath.
+	// CLAY_POINTER_CAPTURE_MODE_PASSTHROUGH - Transparently pass through pointer events like hover and click to elements underneath the floating element.
+	PointerCaptureMode Clay_PointerCaptureMode
+	// Controls which element a floating element is "attached" to (i.e. relative offset from).
+	// CLAY_ATTACH_TO_NONE (default) - Disables floating for this element.
+	// CLAY_ATTACH_TO_PARENT - Attaches this floating element to its parent, positioned based on the .attachPoints and .offset fields.
+	// CLAY_ATTACH_TO_ELEMENT_WITH_ID - Attaches this floating element to an element with a specific ID, specified with the .parentId field. positioned based on the .attachPoints and .offset fields.
+	// CLAY_ATTACH_TO_ROOT - Attaches this floating element to the root of the layout, which combined with the .offset field provides functionality similar to "absolute positioning".
+	AttachTo Clay_FloatingAttachToElement
+	// Controls whether or not a floating element is clipped to the same clipping rectangle as the element it's attached to.
+	// CLAY_CLIP_TO_NONE (default) - The floating element does not inherit clipping.
+	// CLAY_CLIP_TO_ATTACHED_PARENT - The floating element is clipped to the same clipping rectangle as the element it's attached to.
+	ClipTo Clay_FloatingClipToElement
+}
+
+// Controls various settings related to custom elements.
+type Clay_CustomElementConfig struct {
+	// A transparent pointer through which you can pass custom data to the renderer.
+	// Generates CUSTOM render commands.
+	CustomData interface{}
+}
+
+// Controls the axis on which an element switches to "scrolling", which clips the contents and allows scrolling in that direction.
+type Clay_ClipElementConfig struct {
+	Horizontal  bool         // Clip overflowing elements on the X axis.
+	Vertical    bool         // Clip overflowing elements on the Y axis.
+	ChildOffset Clay_Vector2 // Offsets the x,y positions of all child elements. Used primarily for scrolling containers.
+
+}
+
+// Controls settings related to element borders.
+type Clay_BorderElementConfig struct {
+	Color Clay_Color       // Controls the color of all borders with width > 0. Conventionally represented as 0-255, but interpretation is up to the renderer.
+	Width Clay_BorderWidth // Controls the widths of individual borders. At least one of these should be > 0 for a BORDER render command to be generated.
+
+}
+
+type Clay_BorderWidth struct {
+	Left   uint16
+	Right  uint16
+	Top    uint16
+	Bottom uint16
+	// Creates borders between each child element, depending on the .layoutDirection.
+	// e.g. for LEFT_TO_RIGHT, borders will be vertical lines, and for TOP_TO_BOTTOM borders will be horizontal lines.
+	// .betweenChildren borders will result in individual RECTANGLE render commands being generated.
+	BetweenChildren uint16
+}
 
 type Clay_ElementDeclaration struct {
 	Layout          Clay_LayoutConfig
@@ -484,7 +744,26 @@ func Clay_EndLayout() Clay__Array[Clay_RenderCommand] {
 	}
 }
 
-func Clay__OpenElementWithId(id Clay_ElementId) {}
+var CLAY__DEFAULT_STRUCT = Clay_LayoutElement{}
+
+func Clay__OpenElementWithId(elementId Clay_ElementId) {
+	context := Clay_GetCurrentContext()
+	if context.LayoutElements.Length == context.LayoutElements.Capacity-1 || context.BooleanWarnings.MaxElementsExceeded {
+		context.BooleanWarnings.MaxElementsExceeded = true
+		return
+	}
+	layoutElement := CLAY__DEFAULT_STRUCT
+	layoutElement.Id = elementId
+	// Clay_LayoutElement * openLayoutElement = Clay_LayoutElementArray_Add(&context->layoutElements, layoutElement);
+	// Clay__int32_tArray_Add(&context->openLayoutElementStack, context->layoutElements.length - 1);
+	// Clay__AddHashMapItem(elementId, openLayoutElement);
+	// Clay__StringArray_Add(&context->layoutElementIdStrings, elementId.stringId);
+	// if (context->openClipElementStack.length > 0) {
+	//     Clay__int32_tArray_Set(&context->layoutElementClipElementIds, context->layoutElements.length - 1, Clay__int32_tArray_GetValue(&context->openClipElementStack, (int)context->openClipElementStack.length - 1));
+	// } else {
+	//     Clay__int32_tArray_Set(&context->layoutElementClipElementIds, context->layoutElements.length - 1, 0);
+	// }
+}
 
 func Clay__HashString(key Clay_String) Clay_ElementId {
 	h := fnv.New32a()
@@ -501,7 +780,114 @@ func CLAY(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration) 
 	Clay__ConfigureOpenElement(elementDeclaration)
 }
 
-func Clay__ConfigureOpenElement(elementDeclaration Clay_ElementDeclaration) {}
+func Clay__ConfigureOpenElement(elementDeclaration Clay_ElementDeclaration) {
+	// Clay_Context* context = Clay_GetCurrentContext();
+	// Clay_LayoutElement *openLayoutElement = Clay__GetOpenLayoutElement();
+	// openLayoutElement->layoutConfig = Clay__StoreLayoutConfig(declaration->layout);
+	// if ((declaration->layout.sizing.width.type == CLAY__SIZING_TYPE_PERCENT && declaration->layout.sizing.width.size.percent > 1) || (declaration->layout.sizing.height.type == CLAY__SIZING_TYPE_PERCENT && declaration->layout.sizing.height.size.percent > 1)) {
+	//     context->errorHandler.errorHandlerFunction(CLAY__INIT(Clay_ErrorData) {
+	//             .errorType = CLAY_ERROR_TYPE_PERCENTAGE_OVER_1,
+	//             .errorText = CLAY_STRING("An element was configured with CLAY_SIZING_PERCENT, but the provided percentage value was over 1.0. Clay expects a value between 0 and 1, i.e. 20% is 0.2."),
+	//             .userData = context->errorHandler.userData });
+	// }
+
+	// openLayoutElement->elementConfigs.internalArray = &context->elementConfigs.internalArray[context->elementConfigs.length];
+	// Clay_SharedElementConfig *sharedConfig = NULL;
+	// if (declaration->backgroundColor.a > 0) {
+	//     sharedConfig = Clay__StoreSharedElementConfig(CLAY__INIT(Clay_SharedElementConfig) { .backgroundColor = declaration->backgroundColor });
+	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .sharedElementConfig = sharedConfig }, CLAY__ELEMENT_CONFIG_TYPE_SHARED);
+	// }
+	// if (!Clay__MemCmp((char *)(&declaration->cornerRadius), (char *)(&Clay__CornerRadius_DEFAULT), sizeof(Clay_CornerRadius))) {
+	//     if (sharedConfig) {
+	//         sharedConfig->cornerRadius = declaration->cornerRadius;
+	//     } else {
+	//         sharedConfig = Clay__StoreSharedElementConfig(CLAY__INIT(Clay_SharedElementConfig) { .cornerRadius = declaration->cornerRadius });
+	//         Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .sharedElementConfig = sharedConfig }, CLAY__ELEMENT_CONFIG_TYPE_SHARED);
+	//     }
+	// }
+	// if (declaration->userData != 0) {
+	//     if (sharedConfig) {
+	//         sharedConfig->userData = declaration->userData;
+	//     } else {
+	//         sharedConfig = Clay__StoreSharedElementConfig(CLAY__INIT(Clay_SharedElementConfig) { .userData = declaration->userData });
+	//         Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .sharedElementConfig = sharedConfig }, CLAY__ELEMENT_CONFIG_TYPE_SHARED);
+	//     }
+	// }
+	// if (declaration->image.imageData) {
+	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .imageElementConfig = Clay__StoreImageElementConfig(declaration->image) }, CLAY__ELEMENT_CONFIG_TYPE_IMAGE);
+	// }
+	// if (declaration->aspectRatio.aspectRatio > 0) {
+	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .aspectRatioElementConfig = Clay__StoreAspectRatioElementConfig(declaration->aspectRatio) }, CLAY__ELEMENT_CONFIG_TYPE_ASPECT);
+	//     Clay__int32_tArray_Add(&context->aspectRatioElementIndexes, context->layoutElements.length - 1);
+	// }
+	// if (declaration->floating.attachTo != CLAY_ATTACH_TO_NONE) {
+	//     Clay_FloatingElementConfig floatingConfig = declaration->floating;
+	//     // This looks dodgy but because of the auto generated root element the depth of the tree will always be at least 2 here
+	//     Clay_LayoutElement *hierarchicalParent = Clay_LayoutElementArray_Get(&context->layoutElements, Clay__int32_tArray_GetValue(&context->openLayoutElementStack, context->openLayoutElementStack.length - 2));
+	//     if (hierarchicalParent) {
+	//         uint32_t clipElementId = 0;
+	//         if (declaration->floating.attachTo == CLAY_ATTACH_TO_PARENT) {
+	//             // Attach to the element's direct hierarchical parent
+	//             floatingConfig.parentId = hierarchicalParent->id;
+	//             if (context->openClipElementStack.length > 0) {
+	//                 clipElementId = Clay__int32_tArray_GetValue(&context->openClipElementStack, (int)context->openClipElementStack.length - 1);
+	//             }
+	//         } else if (declaration->floating.attachTo == CLAY_ATTACH_TO_ELEMENT_WITH_ID) {
+	//             Clay_LayoutElementHashMapItem *parentItem = Clay__GetHashMapItem(floatingConfig.parentId);
+	//             if (parentItem == &Clay_LayoutElementHashMapItem_DEFAULT) {
+	//                 context->errorHandler.errorHandlerFunction(CLAY__INIT(Clay_ErrorData) {
+	//                         .errorType = CLAY_ERROR_TYPE_FLOATING_CONTAINER_PARENT_NOT_FOUND,
+	//                         .errorText = CLAY_STRING("A floating element was declared with a parentId, but no element with that ID was found."),
+	//                         .userData = context->errorHandler.userData });
+	//             } else {
+	//                 clipElementId = Clay__int32_tArray_GetValue(&context->layoutElementClipElementIds, (int32_t)(parentItem->layoutElement - context->layoutElements.internalArray));
+	//             }
+	//         } else if (declaration->floating.attachTo == CLAY_ATTACH_TO_ROOT) {
+	//             floatingConfig.parentId = Clay__HashString(CLAY_STRING("Clay__RootContainer"), 0).id;
+	//         }
+	//         if (declaration->floating.clipTo == CLAY_CLIP_TO_NONE) {
+	//             clipElementId = 0;
+	//         }
+	//         int32_t currentElementIndex = Clay__int32_tArray_GetValue(&context->openLayoutElementStack, context->openLayoutElementStack.length - 1);
+	//         Clay__int32_tArray_Set(&context->layoutElementClipElementIds, currentElementIndex, clipElementId);
+	//         Clay__int32_tArray_Add(&context->openClipElementStack, clipElementId);
+	//         Clay__LayoutElementTreeRootArray_Add(&context->layoutElementTreeRoots, CLAY__INIT(Clay__LayoutElementTreeRoot) {
+	//                 .layoutElementIndex = Clay__int32_tArray_GetValue(&context->openLayoutElementStack, context->openLayoutElementStack.length - 1),
+	//                 .parentId = floatingConfig.parentId,
+	//                 .clipElementId = clipElementId,
+	//                 .zIndex = floatingConfig.zIndex,
+	//         });
+	//         Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .floatingElementConfig = Clay__StoreFloatingElementConfig(floatingConfig) }, CLAY__ELEMENT_CONFIG_TYPE_FLOATING);
+	//     }
+	// }
+	// if (declaration->custom.customData) {
+	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .customElementConfig = Clay__StoreCustomElementConfig(declaration->custom) }, CLAY__ELEMENT_CONFIG_TYPE_CUSTOM);
+	// }
+
+	// if (declaration->clip.horizontal | declaration->clip.vertical) {
+	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .clipElementConfig = Clay__StoreClipElementConfig(declaration->clip) }, CLAY__ELEMENT_CONFIG_TYPE_CLIP);
+	//     Clay__int32_tArray_Add(&context->openClipElementStack, (int)openLayoutElement->id);
+	//     // Retrieve or create cached data to track scroll position across frames
+	//     Clay__ScrollContainerDataInternal *scrollOffset = CLAY__NULL;
+	//     for (int32_t i = 0; i < context->scrollContainerDatas.length; i++) {
+	//         Clay__ScrollContainerDataInternal *mapping = Clay__ScrollContainerDataInternalArray_Get(&context->scrollContainerDatas, i);
+	//         if (openLayoutElement->id == mapping->elementId) {
+	//             scrollOffset = mapping;
+	//             scrollOffset->layoutElement = openLayoutElement;
+	//             scrollOffset->openThisFrame = true;
+	//         }
+	//     }
+	//     if (!scrollOffset) {
+	//         scrollOffset = Clay__ScrollContainerDataInternalArray_Add(&context->scrollContainerDatas, CLAY__INIT(Clay__ScrollContainerDataInternal){.layoutElement = openLayoutElement, .scrollOrigin = {-1,-1}, .elementId = openLayoutElement->id, .openThisFrame = true});
+	//     }
+	//     if (context->externalScrollHandlingEnabled) {
+	//         scrollOffset->scrollPosition = Clay__QueryScrollOffset(scrollOffset->elementId, context->queryScrollOffsetUserData);
+	//     }
+	// }
+	// if (!Clay__MemCmp((char *)(&declaration->border.width), (char *)(&Clay__BorderWidth_DEFAULT), sizeof(Clay_BorderWidth))) {
+	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .borderElementConfig = Clay__StoreBorderElementConfig(declaration->border) }, CLAY__ELEMENT_CONFIG_TYPE_BORDER);
+	// }
+}
 
 func Clay_SetLayoutDimensions(dimensions Clay_Dimensions) {
 	currentContext := Clay_GetCurrentContext()
@@ -513,7 +899,39 @@ func CLAY_TEXT(text Clay_String, textConfig Clay_TextElementConfig) {
 	Clay__OpenTextElement(text, textConfig)
 }
 
-func Clay__OpenTextElement(text Clay_String, textConfig Clay_TextElementConfig) {}
+func Clay__OpenTextElement(text Clay_String, textConfig Clay_TextElementConfig) {
+	// Clay_Context* context = Clay_GetCurrentContext();
+	// if (context->layoutElements.length == context->layoutElements.capacity - 1 || context->booleanWarnings.maxElementsExceeded) {
+	//     context->booleanWarnings.maxElementsExceeded = true;
+	//     return;
+	// }
+	// Clay_LayoutElement *parentElement = Clay__GetOpenLayoutElement();
+
+	// Clay_LayoutElement layoutElement = CLAY__DEFAULT_STRUCT;
+	// Clay_LayoutElement *textElement = Clay_LayoutElementArray_Add(&context->layoutElements, layoutElement);
+	// if (context->openClipElementStack.length > 0) {
+	//     Clay__int32_tArray_Set(&context->layoutElementClipElementIds, context->layoutElements.length - 1, Clay__int32_tArray_GetValue(&context->openClipElementStack, (int)context->openClipElementStack.length - 1));
+	// } else {
+	//     Clay__int32_tArray_Set(&context->layoutElementClipElementIds, context->layoutElements.length - 1, 0);
+	// }
+
+	// Clay__int32_tArray_Add(&context->layoutElementChildrenBuffer, context->layoutElements.length - 1);
+	// Clay__MeasureTextCacheItem *textMeasured = Clay__MeasureTextCached(&text, textConfig);
+	// Clay_ElementId elementId = Clay__HashNumber(parentElement->childrenOrTextContent.children.length, parentElement->id);
+	// textElement->id = elementId.id;
+	// Clay__AddHashMapItem(elementId, textElement);
+	// Clay__StringArray_Add(&context->layoutElementIdStrings, elementId.stringId);
+	// Clay_Dimensions textDimensions = { .width = textMeasured->unwrappedDimensions.width, .height = textConfig->lineHeight > 0 ? (float)textConfig->lineHeight : textMeasured->unwrappedDimensions.height };
+	// textElement->dimensions = textDimensions;
+	// textElement->minDimensions = CLAY__INIT(Clay_Dimensions) { .width = textMeasured->minWidth, .height = textDimensions.height };
+	// textElement->childrenOrTextContent.textElementData = Clay__TextElementDataArray_Add(&context->textElementData, CLAY__INIT(Clay__TextElementData) { .text = text, .preferredDimensions = textMeasured->unwrappedDimensions, .elementIndex = context->layoutElements.length - 1 });
+	// textElement->elementConfigs = CLAY__INIT(Clay__ElementConfigArraySlice) {
+	//         .length = 1,
+	//         .internalArray = Clay__ElementConfigArray_Add(&context->elementConfigs, CLAY__INIT(Clay_ElementConfig) { .type = CLAY__ELEMENT_CONFIG_TYPE_TEXT, .config = { .textElementConfig = textConfig }})
+	// };
+	// textElement->layoutConfig = &CLAY_LAYOUT_DEFAULT;
+	// parentElement->childrenOrTextContent.children.length++;
+}
 
 func Clay__InitializePersistentMemory(context *Clay_Context) {
 	// Persistent memory - initialized once and not reset

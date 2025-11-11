@@ -1,8 +1,6 @@
 package clay
 
 import (
-	"hash/fnv"
-
 	"github.com/zodimo/go-arena-memory/mem"
 )
 
@@ -12,8 +10,26 @@ type Clay_Arena = mem.Arena
 
 var Clay__currentContext *Clay_Context
 
-type Clay_ElementId = uint32
-type Clay_String = string
+// Primarily created via the CLAY_ID(), CLAY_IDI(), CLAY_ID_LOCAL() and CLAY_IDI_LOCAL() macros.
+// Represents a hashed string ID used for identifying and finding specific clay UI elements, required
+// by functions such as Clay_PointerOver() and Clay_GetElementData().
+type Clay_ElementId struct {
+	Id       uint32      // The resulting hash generated from the other fields.
+	Offset   uint32      // A numerical offset applied after computing the hash from stringId.
+	BaseId   uint32      // A base hash value to start from, for example the parent element ID is used when calculating CLAY_ID_LOCAL().
+	StringId Clay_String // The string id to hash.
+}
+
+// Note: Clay_String is not guaranteed to be null terminated. It may be if created from a literal C string,
+// but it is also used to represent slices.
+type Clay_String struct {
+	// Set this boolean to true if the char* data underlying this string will live for the entire lifetime of the program.
+	// This will automatically be set for strings created with CLAY_STRING, as the macro requires a string literal.
+	IsStaticallyAllocated bool
+	Length                int32
+	// The underlying character memory. Note: this will not be copied and will not extend the lifetime of the underlying memory.
+	Chars []rune
+}
 
 type Clay_Dimensions struct {
 	Width  float32
@@ -159,20 +175,6 @@ type Clay_ArraySlice[T any] struct {
 	InternalArray []T
 }
 
-type Clay__Array[T any] struct {
-	Capacity      int32
-	Length        int32
-	InternalArray []T
-}
-
-func NewClay__Array[T any](capacity int32) Clay__Array[T] {
-	return Clay__Array[T]{
-		Capacity:      capacity,
-		Length:        0,
-		InternalArray: make([]T, capacity),
-	}
-}
-
 func Clay__Array_Allocate_Arena[T any](capacity int32, arena *Clay_Arena) *Clay__Array[T] {
 	outArr, err := mem.AllocateStructObject[Clay__Array[T]](arena, NewClay__Array[T](capacity))
 	if err != nil {
@@ -181,15 +183,22 @@ func Clay__Array_Allocate_Arena[T any](capacity int32, arena *Clay_Arena) *Clay_
 	return outArr
 }
 
+type Clay__LayoutElementChildren struct {
+	Elements []int32
+	Length   uint16
+}
+
+type Clay__LayoutElementChildrenOrTextContent struct {
+	Children        Clay__LayoutElementChildren
+	TextElementData *Clay__TextElementData
+}
+
 type Clay_LayoutElement struct {
-	// union {
-	//     Clay__LayoutElementChildren children;
-	//     Clay__TextElementData *textElementData;
-	// } childrenOrTextContent;
+	ChildrenOrTextContent Clay__LayoutElementChildrenOrTextContent
 	Dimensions            Clay_Dimensions
 	MinDimensions         Clay_Dimensions
 	LayoutConfig          Clay_LayoutConfig
-	ElementConfigs        Clay__Array[Clay_ElementConfig] // slice
+	ElementConfigs        Clay__Slice[Clay_ElementConfig]
 	Id                    uint32
 	FloatingChildrenCount uint16
 }
@@ -772,7 +781,7 @@ func Clay__OpenElementWithId(elementId Clay_ElementId) {
 		return
 	}
 	layoutElement := CLAY__DEFAULT_STRUCT
-	layoutElement.Id = elementId
+	layoutElement.Id = elementId.Id
 	// Clay_LayoutElement * openLayoutElement = Clay_LayoutElementArray_Add(&context->layoutElements, layoutElement);
 	// Clay__int32_tArray_Add(&context->openLayoutElementStack, context->layoutElements.length - 1);
 	// Clay__AddHashMapItem(elementId, openLayoutElement);
@@ -784,14 +793,32 @@ func Clay__OpenElementWithId(elementId Clay_ElementId) {
 	// }
 }
 
-func Clay__HashString(key Clay_String) Clay_ElementId {
-	h := fnv.New32a()
-	h.Write([]byte(key))
-	return h.Sum32()
+func Clay__HashString(key Clay_String, seed uint32) Clay_ElementId {
+	hash := seed
+
+	for i := int32(0); i < int32(len(key.Chars)); i++ {
+		hash += uint32(key.Chars[i])
+		hash += (hash << 10)
+		hash ^= (hash >> 6)
+	}
+
+	hash += (hash << 3)
+	hash ^= (hash >> 11)
+	hash += (hash << 15)
+	return Clay_ElementId{
+		Id:       hash + 1,
+		Offset:   0,
+		BaseId:   hash + 1,
+		StringId: key,
+	} // Reserve the hash result of zero as "null id"
 }
 
 func CLAY_STRING(label string) Clay_String {
-	return label
+	return Clay_String{
+		IsStaticallyAllocated: true,
+		Length:                int32(len(label)),
+		Chars:                 []rune(label),
+	}
 }
 
 func CLAY(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration) {
@@ -918,38 +945,105 @@ func CLAY_TEXT(text Clay_String, textConfig Clay_TextElementConfig) {
 	Clay__OpenTextElement(text, textConfig)
 }
 
+func Clay__GetOpenLayoutElement() *Clay_LayoutElement {
+	currentContext := Clay_GetCurrentContext()
+	return Clay__Array_Get[Clay_LayoutElement](currentContext.LayoutElements, Clay__Array_GetValue[int32](currentContext.OpenLayoutElementStack, currentContext.OpenLayoutElementStack.Length-1))
+
+	// Clay_LayoutElement* Clay__GetOpenLayoutElement(void) {
+	//     Clay_Context* context = Clay_GetCurrentContext();
+	//     return Clay_LayoutElementArray_Get(&context->layoutElements, Clay__int32_tArray_GetValue(&context->openLayoutElementStack, context->openLayoutElementStack.length - 1));
+	// }
+
+}
+func Clay__MeasureTextCached(text *Clay_String, textConfig Clay_TextElementConfig) *Clay__MeasureTextCacheItem {
+	panic("not implemented")
+}
+
+func Clay__HashNumber(offset uint32, seed uint32) Clay_ElementId {
+	hash := seed
+	hash += (offset + 48)
+	hash += (hash << 10)
+	hash ^= (hash >> 6)
+	hash += (hash << 3)
+	hash ^= (hash >> 11)
+	hash += (hash << 15)
+	return Clay_ElementId{Id: hash + 1, Offset: offset, BaseId: hash + 1, StringId: Clay_String{Chars: []rune{}}}
+}
+
+func Clay__AddHashMapItem(elementId Clay_ElementId, layoutElement *Clay_LayoutElement) *Clay_LayoutElementHashMapItem {
+	panic("not implemented")
+}
+
 func Clay__OpenTextElement(text Clay_String, textConfig Clay_TextElementConfig) {
-	// Clay_Context* context = Clay_GetCurrentContext();
-	// if (context->layoutElements.length == context->layoutElements.capacity - 1 || context->booleanWarnings.maxElementsExceeded) {
-	//     context->booleanWarnings.maxElementsExceeded = true;
-	//     return;
-	// }
-	// Clay_LayoutElement *parentElement = Clay__GetOpenLayoutElement();
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.LayoutElements.Length == currentContext.LayoutElements.Capacity-1 || currentContext.BooleanWarnings.MaxElementsExceeded {
+		currentContext.BooleanWarnings.MaxElementsExceeded = true
+		return
+	}
+	parentElement := Clay__GetOpenLayoutElement()
 
-	// Clay_LayoutElement layoutElement = CLAY__DEFAULT_STRUCT;
-	// Clay_LayoutElement *textElement = Clay_LayoutElementArray_Add(&context->layoutElements, layoutElement);
-	// if (context->openClipElementStack.length > 0) {
-	//     Clay__int32_tArray_Set(&context->layoutElementClipElementIds, context->layoutElements.length - 1, Clay__int32_tArray_GetValue(&context->openClipElementStack, (int)context->openClipElementStack.length - 1));
-	// } else {
-	//     Clay__int32_tArray_Set(&context->layoutElementClipElementIds, context->layoutElements.length - 1, 0);
-	// }
+	layoutElement := Clay_LayoutElement{}
 
-	// Clay__int32_tArray_Add(&context->layoutElementChildrenBuffer, context->layoutElements.length - 1);
-	// Clay__MeasureTextCacheItem *textMeasured = Clay__MeasureTextCached(&text, textConfig);
-	// Clay_ElementId elementId = Clay__HashNumber(parentElement->childrenOrTextContent.children.length, parentElement->id);
-	// textElement->id = elementId.id;
-	// Clay__AddHashMapItem(elementId, textElement);
-	// Clay__StringArray_Add(&context->layoutElementIdStrings, elementId.stringId);
+	textElement := Clay__Array_Add[Clay_LayoutElement](currentContext.LayoutElements, layoutElement)
+
+	if currentContext.OpenClipElementStack.Length > 0 {
+		Clay__Array_Set(currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length-1, Clay__Array_GetValue[int32](currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length-1))
+	} else {
+		Clay__Array_Set(currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length-1, 0)
+	}
+
+	Clay__Array_Add(currentContext.LayoutElementChildrenBuffer, currentContext.LayoutElements.Length-1)
+
+	textMeasured := Clay__MeasureTextCached(&text, textConfig)
+
+	elementId := Clay__HashNumber(uint32(parentElement.ChildrenOrTextContent.Children.Length), parentElement.Id)
+
+	textElement.Id = elementId.Id
+
+	Clay__AddHashMapItem(elementId, textElement)
+	Clay__Array_Add(currentContext.LayoutElementIdStrings, elementId.StringId)
+
 	// Clay_Dimensions textDimensions = { .width = textMeasured->unwrappedDimensions.width, .height = textConfig->lineHeight > 0 ? (float)textConfig->lineHeight : textMeasured->unwrappedDimensions.height };
-	// textElement->dimensions = textDimensions;
-	// textElement->minDimensions = CLAY__INIT(Clay_Dimensions) { .width = textMeasured->minWidth, .height = textDimensions.height };
-	// textElement->childrenOrTextContent.textElementData = Clay__TextElementDataArray_Add(&context->textElementData, CLAY__INIT(Clay__TextElementData) { .text = text, .preferredDimensions = textMeasured->unwrappedDimensions, .elementIndex = context->layoutElements.length - 1 });
-	// textElement->elementConfigs = CLAY__INIT(Clay__ElementConfigArraySlice) {
-	//         .length = 1,
-	//         .internalArray = Clay__ElementConfigArray_Add(&context->elementConfigs, CLAY__INIT(Clay_ElementConfig) { .type = CLAY__ELEMENT_CONFIG_TYPE_TEXT, .config = { .textElementConfig = textConfig }})
-	// };
-	// textElement->layoutConfig = &CLAY_LAYOUT_DEFAULT;
-	// parentElement->childrenOrTextContent.children.length++;
+
+	textDimensions := Clay_Dimensions{
+		Width:  textMeasured.UnwrappedDimensions.Width,
+		Height: textMeasured.UnwrappedDimensions.Height,
+	}
+
+	if textConfig.LineHeight > 0 {
+		textDimensions.Height = float32(textConfig.LineHeight)
+	}
+
+	textElement.Dimensions = textDimensions
+
+	textElement.MinDimensions = Clay_Dimensions{
+		Width:  textMeasured.MinWidth,
+		Height: textDimensions.Height,
+	}
+
+	textElement.ChildrenOrTextContent.TextElementData = Clay__Array_Add(currentContext.TextElementData, Clay__TextElementData{
+		Text:                text,
+		PreferredDimensions: textMeasured.UnwrappedDimensions,
+		ElementIndex:        currentContext.LayoutElements.Length - 1,
+	})
+
+	// add config to element configs
+
+	config := Clay__Array_Add(currentContext.ElementConfigs, Clay_ElementConfig{
+		Type:   CLAY__ELEMENT_CONFIG_TYPE_TEXT,
+		Config: Clay_ElementConfigUnion{TextElementConfig: &textConfig},
+	})
+	if config != nil {
+		configIndex := currentContext.ElementConfigs.Length - 1
+
+		segmentView := currentContext.ElementConfigs.InternalArray[configIndex : configIndex+1]
+		textElement.ElementConfigs = Clay__Slice[Clay_ElementConfig]{
+			Length:        1,
+			InternalArray: segmentView,
+		}
+	}
+	textElement.LayoutConfig = Clay_LayoutConfig{}
+	parentElement.ChildrenOrTextContent.Children.Length++
 }
 
 type Clay__MeasureTextCacheItem struct {

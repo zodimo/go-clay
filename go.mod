@@ -6,7 +6,7 @@ tool github.com/xlab/c-for-go
 
 require (
 	gioui.org v0.9.0
-	github.com/zodimo/go-arena-memory v0.1.2
+	github.com/zodimo/go-arena-memory v0.1.3
 )
 
 require (

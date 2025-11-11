@@ -61,7 +61,12 @@ func run(w *app.Window) error {
 						Height: float32(gtx.Constraints.Max.Y),
 					},
 					// gioui.NewMeasurer(),
-					clay.Clay_ErrorHandler{},
+					clay.Clay_ErrorHandler{
+						ErrorHandlerFunction: func(errorData clay.Clay_ErrorData) {
+							fmt.Printf("Error: %v\n", errorData)
+						},
+						UserData: nil,
+					},
 				)
 				clayReady = true
 			}

@@ -2,7 +2,6 @@ package clay
 
 import (
 	"bytes"
-	"fmt"
 	"unsafe"
 
 	"github.com/zodimo/go-arena-memory/mem"
@@ -934,8 +933,8 @@ func Clay__StoreBorderElementConfig(config Clay_BorderElementConfig) *Clay_Borde
 
 func Clay__GetHashMapItem(id uint32) *Clay_LayoutElementHashMapItem {
 	currentContext := Clay_GetCurrentContext()
-	// conversion from uint32 to int32 may not be safe, uint32 can hold larger values than int32
-	hashBucket := int32(id) % currentContext.LayoutElementsHashMap.Capacity
+	// Perform modulo with uint32 first to avoid negative results, then cast to int32
+	hashBucket := int32(id % uint32(currentContext.LayoutElementsHashMap.Capacity))
 
 	elementIndex := currentContext.LayoutElementsHashMap.InternalArray[hashBucket]
 	for elementIndex != -1 {
@@ -1126,8 +1125,8 @@ func Clay__AddHashMapItem(elementId Clay_ElementId, layoutElement *Clay_LayoutEl
 		Generation:    currentContext.Generation + 1,
 	}
 
-	hashBucket := int32(elementId.Id) % currentContext.LayoutElementsHashMap.Capacity
-	fmt.Println("hashBucket", hashBucket, "elementId.Id", elementId.Id, "int elementId.Id", int(elementId.Id), "currentContext.LayoutElementsHashMap.Capacity", currentContext.LayoutElementsHashMap.Capacity)
+	// Perform modulo with uint32 first to avoid negative results, then cast to int32
+	hashBucket := int32(elementId.Id % uint32(currentContext.LayoutElementsHashMap.Capacity))
 	hashItemPrevious := int32(-1)
 	hashItemIndex := currentContext.LayoutElementsHashMap.InternalArray[hashBucket]
 	for hashItemIndex != -1 { // Just replace collision, not a big deal - leave it up to the end user

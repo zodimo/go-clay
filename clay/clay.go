@@ -1204,8 +1204,7 @@ func Clay__ConfigureOpenElement(elementDeclaration Clay_ElementDeclaration) {
 				} else if elementDeclaration.Floating.AttachTo == CLAY_ATTACH_TO_ELEMENT_WITH_ID {
 					parentItem := Clay__GetHashMapItem(floatingConfig.ParentId)
 					// check if parentItem is pointing to the default item
-					// @TODO CLAY has default structs for all types, so we need to use that instead of a pointer to the default item
-					defaultItem := &Clay_LayoutElementHashMapItem{}
+					defaultItem := &Clay_LayoutElementHashMapItem_DEFAULT
 					if parentItem == defaultItem {
 						currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
 							ErrorType: CLAY_ERROR_TYPE_FLOATING_CONTAINER_PARENT_NOT_FOUND,

@@ -234,7 +234,7 @@ type Clay_RectangleRenderData struct {
 type Clay_TextRenderData struct {
 	// A string slice containing the text to be rendered.
 	// Note: this is not guaranteed to be null terminated.
-	StringContents Clay_String // Slice
+	StringContents Clay_StringSlice
 	// Conventionally represented as 0-255 for each channel, but interpretation is up to the renderer.
 	TextColor Clay_Color
 	// An integer representing the font to use to render this text, transparently passed through from the text declaration.
@@ -801,15 +801,246 @@ func Clay_BeginLayout() {
 
 }
 
-func Clay_EndLayout() Clay__Array[Clay_RenderCommand] {
-	return Clay__Array[Clay_RenderCommand]{
-		Capacity:      Clay__defaultMaxElementCount,
-		Length:        0,
-		InternalArray: make([]Clay_RenderCommand, Clay__defaultMaxElementCount),
+func CLAY__MAX(x, y float32) float32 {
+	if x > y {
+		return x
+	}
+	return y
+}
+func CLAY__MIN(x, y float32) float32 {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+func Clay__CloseElement() {
+
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		return
+	}
+	openLayoutElement := Clay__GetOpenLayoutElement()
+	layoutConfig := openLayoutElement.LayoutConfig
+	if layoutConfig == nil {
+		openLayoutElement.LayoutConfig = &Clay_LayoutConfig_DEFAULT
+		layoutConfig = &Clay_LayoutConfig_DEFAULT
+	}
+
+	elementHasClipHorizontal := false
+	elementHasClipVertical := false
+
+	for i := int32(0); i < openLayoutElement.ElementConfigs.Length; i++ {
+		config := Clay__Slice_Get(&openLayoutElement.ElementConfigs, i)
+		if config.Type == CLAY__ELEMENT_CONFIG_TYPE_CLIP {
+			elementHasClipHorizontal = config.Config.ClipElementConfig.Horizontal
+			elementHasClipVertical = config.Config.ClipElementConfig.Vertical
+			currentContext.OpenClipElementStack.Length--
+			break
+		} else if config.Type == CLAY__ELEMENT_CONFIG_TYPE_FLOATING {
+			currentContext.OpenClipElementStack.Length--
+		}
+	}
+
+	leftRightPadding := float32(layoutConfig.Padding.Left + layoutConfig.Padding.Right)
+	topBottomPadding := float32(layoutConfig.Padding.Top + layoutConfig.Padding.Bottom)
+
+	// Attach children to the current open element
+
+	//this may not be right
+	openLayoutElement.ChildrenOrTextContent.Children.Elements = currentContext.LayoutElementChildren.InternalArray //[currentContext.LayoutElementChildren.Length]
+	if layoutConfig.LayoutDirection == CLAY_LEFT_TO_RIGHT {
+		openLayoutElement.Dimensions.Width = leftRightPadding
+		openLayoutElement.MinDimensions.Width = leftRightPadding
+		for i := uint16(0); i < openLayoutElement.ChildrenOrTextContent.Children.Length; i++ {
+			childIndex := Clay__Array_GetValue(currentContext.LayoutElementChildrenBuffer, currentContext.LayoutElementChildrenBuffer.Length-int32(openLayoutElement.ChildrenOrTextContent.Children.Length)+int32(i))
+			child := Clay__Array_Get(currentContext.LayoutElements, childIndex)
+			openLayoutElement.Dimensions.Width += child.Dimensions.Width
+			openLayoutElement.Dimensions.Height = CLAY__MAX(openLayoutElement.Dimensions.Height, child.Dimensions.Height+topBottomPadding)
+
+			// Minimum size of child elements doesn't matter to clip containers as they can shrink and hide their contents
+			if !elementHasClipHorizontal {
+				openLayoutElement.MinDimensions.Width += child.MinDimensions.Width
+			}
+			if !elementHasClipVertical {
+				openLayoutElement.MinDimensions.Height = CLAY__MAX(openLayoutElement.MinDimensions.Height, child.MinDimensions.Height+topBottomPadding)
+			}
+			Clay__Array_Add(currentContext.LayoutElementChildren, childIndex)
+		}
+
+		childGap := float32(CLAY__MAX(float32(openLayoutElement.ChildrenOrTextContent.Children.Length-1), 0) * float32(layoutConfig.ChildGap))
+
+		openLayoutElement.Dimensions.Width += childGap
+		if !elementHasClipHorizontal {
+			openLayoutElement.MinDimensions.Width += childGap
+		}
+	} else if layoutConfig.LayoutDirection == CLAY_TOP_TO_BOTTOM {
+		openLayoutElement.Dimensions.Height = topBottomPadding
+		openLayoutElement.MinDimensions.Height = topBottomPadding
+		for i := uint16(0); i < openLayoutElement.ChildrenOrTextContent.Children.Length; i++ {
+			childIndex := Clay__Array_GetValue(currentContext.LayoutElementChildrenBuffer, currentContext.LayoutElementChildrenBuffer.Length-int32(openLayoutElement.ChildrenOrTextContent.Children.Length)+int32(i))
+			child := Clay__Array_Get(currentContext.LayoutElements, childIndex)
+			openLayoutElement.Dimensions.Height += child.Dimensions.Height
+			openLayoutElement.Dimensions.Width = CLAY__MAX(openLayoutElement.Dimensions.Width, child.Dimensions.Width+leftRightPadding)
+			if !elementHasClipVertical {
+				openLayoutElement.MinDimensions.Height += child.MinDimensions.Height
+			}
+			if !elementHasClipHorizontal {
+				openLayoutElement.MinDimensions.Width = CLAY__MAX(openLayoutElement.MinDimensions.Width, child.MinDimensions.Width+leftRightPadding)
+			}
+			Clay__Array_Add(currentContext.LayoutElementChildren, childIndex)
+		}
+
+		childGap := float32(CLAY__MAX(float32(openLayoutElement.ChildrenOrTextContent.Children.Length-1), 0) * float32(layoutConfig.ChildGap))
+
+		openLayoutElement.Dimensions.Height += childGap
+		if !elementHasClipVertical {
+			openLayoutElement.MinDimensions.Height += childGap
+		}
+	}
+
+	currentContext.LayoutElementChildrenBuffer.Length -= int32(openLayoutElement.ChildrenOrTextContent.Children.Length)
+
+	// Clamp element min and max width to the values configured in the layout
+	if layoutConfig.Sizing.Width.Type != CLAY__SIZING_TYPE_PERCENT {
+		if layoutConfig.Sizing.Width.Size.MinMax.Max <= 0 { // Set the max size if the user didn't specify, makes calculations easier
+			layoutConfig.Sizing.Width.Size.MinMax.Max = CLAY__MAXFLOAT
+		}
+		openLayoutElement.Dimensions.Width = CLAY__MIN(CLAY__MAX(openLayoutElement.Dimensions.Width, layoutConfig.Sizing.Width.Size.MinMax.Min), layoutConfig.Sizing.Width.Size.MinMax.Max)
+		openLayoutElement.MinDimensions.Width = CLAY__MIN(CLAY__MAX(openLayoutElement.MinDimensions.Width, layoutConfig.Sizing.Width.Size.MinMax.Min), layoutConfig.Sizing.Width.Size.MinMax.Max)
+	} else {
+		openLayoutElement.Dimensions.Width = 0
+	}
+
+	// Clamp element min and max height to the values configured in the layout
+	if layoutConfig.Sizing.Height.Type != CLAY__SIZING_TYPE_PERCENT {
+		if layoutConfig.Sizing.Height.Size.MinMax.Max <= 0 { // Set the max size if the user didn't specify, makes calculations easier
+			layoutConfig.Sizing.Height.Size.MinMax.Max = CLAY__MAXFLOAT
+		}
+
+		openLayoutElement.Dimensions.Height = CLAY__MIN(CLAY__MAX(openLayoutElement.Dimensions.Height, layoutConfig.Sizing.Height.Size.MinMax.Min), layoutConfig.Sizing.Height.Size.MinMax.Max)
+		openLayoutElement.MinDimensions.Height = CLAY__MIN(CLAY__MAX(openLayoutElement.MinDimensions.Height, layoutConfig.Sizing.Height.Size.MinMax.Min), layoutConfig.Sizing.Height.Size.MinMax.Max)
+	} else {
+		openLayoutElement.Dimensions.Height = 0
+	}
+
+	Clay__UpdateAspectRatioBox(openLayoutElement)
+
+	elementIsFloating := Clay__ElementHasConfig(openLayoutElement, CLAY__ELEMENT_CONFIG_TYPE_FLOATING)
+
+	// Close the currently open element
+	closingElementIndex := Clay__Array_RemoveSwapback(currentContext.OpenLayoutElementStack, currentContext.OpenLayoutElementStack.Length-1)
+
+	// Get the currently open parent
+	openLayoutElement = Clay__GetOpenLayoutElement()
+
+	if currentContext.OpenLayoutElementStack.Length > 1 {
+		if elementIsFloating {
+			openLayoutElement.FloatingChildrenCount++
+			return
+		}
+		openLayoutElement.ChildrenOrTextContent.Children.Length++
+		Clay__Array_Add(currentContext.LayoutElementChildrenBuffer, closingElementIndex)
+	}
+
+}
+
+func Clay__ElementHasConfig(layoutElement *Clay_LayoutElement, configType Clay__ElementConfigType) bool {
+	for i := int32(0); i < layoutElement.ElementConfigs.Length; i++ {
+		if Clay__Slice_Get(&layoutElement.ElementConfigs, i).Type == configType {
+			return true
+		}
+	}
+	return false
+}
+
+func Clay__UpdateAspectRatioBox(layoutElement *Clay_LayoutElement) {
+	for j := int32(0); j < layoutElement.ElementConfigs.Length; j++ {
+		config := Clay__Slice_Get(&layoutElement.ElementConfigs, j)
+		if config.Type == CLAY__ELEMENT_CONFIG_TYPE_ASPECT {
+			aspectConfig := config.Config.AspectRatioElementConfig
+			if aspectConfig.AspectRatio == 0 {
+				break
+			}
+
+			if layoutElement.Dimensions.Width == 0 && layoutElement.Dimensions.Height != 0 {
+				layoutElement.Dimensions.Width = layoutElement.Dimensions.Height * aspectConfig.AspectRatio
+			} else if layoutElement.Dimensions.Width != 0 && layoutElement.Dimensions.Height == 0 {
+				layoutElement.Dimensions.Height = layoutElement.Dimensions.Width * (1 / aspectConfig.AspectRatio)
+			}
+			break
+		}
 	}
 }
 
-var CLAY__DEFAULT_STRUCT = Clay_LayoutElement{}
+func Clay__RenderDebugView() {
+	panic("Clay__RenderDebugViewElementConfigHeader not implemented")
+}
+
+func Clay_EndLayout() []Clay_RenderCommand {
+
+	currentContext := Clay_GetCurrentContext()
+	Clay__CloseElement()
+	elementsExceededBeforeDebugView := currentContext.BooleanWarnings.MaxElementsExceeded
+	if currentContext.DebugModeEnabled && !elementsExceededBeforeDebugView {
+		currentContext.WarningsEnabled = false
+		Clay__RenderDebugView()
+		currentContext.WarningsEnabled = true
+	}
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		var message Clay_String
+		if !elementsExceededBeforeDebugView {
+			message = CLAY_STRING("Clay Error: Layout elements exceeded Clay__maxElementCount after adding the debug-view to the layout.")
+		} else {
+			message = CLAY_STRING("Clay Error: Layout elements exceeded Clay__maxElementCount")
+		}
+		Clay__AddRenderCommand(Clay_RenderCommand{
+			BoundingBox: Clay_BoundingBox{
+				X:      currentContext.LayoutDimensions.Width/2 - 59*4,
+				Y:      currentContext.LayoutDimensions.Height / 2,
+				Width:  0,
+				Height: 0,
+			},
+			RenderData: Clay_RenderData{
+				Text: Clay_TextRenderData{
+					StringContents: Clay_StringSlice{
+						Length:    message.Length,
+						Chars:     message.Chars,
+						BaseChars: message.Chars,
+					},
+					TextColor: Clay_Color{R: 255, G: 0, B: 0, A: 255},
+					FontSize:  16,
+				},
+			},
+			CommandType: CLAY_RENDER_COMMAND_TYPE_TEXT,
+		})
+	}
+	if currentContext.OpenLayoutElementStack.Length > 1 {
+		currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
+			ErrorType: CLAY_ERROR_TYPE_UNBALANCED_OPEN_CLOSE,
+			ErrorText: CLAY_STRING("There were still open layout elements when EndLayout was called. This results from an unequal number of calls to Clay__OpenElement and Clay__CloseElement."),
+			UserData:  currentContext.ErrorHandler.UserData,
+		})
+	}
+	// Clay__CalculateFinalLayout();
+	return currentContext.RenderCommands.InternalArray[:currentContext.RenderCommands.Length]
+
+}
+
+func Clay__AddRenderCommand(renderCommand Clay_RenderCommand) {
+	// Clay_Context* context = Clay_GetCurrentContext();
+	// if (context->renderCommands.length < context->renderCommands.capacity - 1) {
+	//     Clay_RenderCommandArray_Add(&context->renderCommands, renderCommand);
+	// } else {
+	//     if (!context->booleanWarnings.maxRenderCommandsExceeded) {
+	//         context->booleanWarnings.maxRenderCommandsExceeded = true;
+	//         context->errorHandler.errorHandlerFunction(CLAY__INIT(Clay_ErrorData) {
+	//             .errorType = CLAY_ERROR_TYPE_ELEMENTS_CAPACITY_EXCEEDED,
+	//             .errorText = CLAY_STRING("Clay ran out of capacity while attempting to create render commands. This is usually caused by a large amount of wrapping text elements while close to the max element capacity. Try using Clay_SetMaxElementCount() with a higher value."),
+	//             .userData = context->errorHandler.userData });
+	//     }
+	// }
+}
 
 func Clay__OpenElementWithId(elementId Clay_ElementId) {
 	currentContext := Clay_GetCurrentContext()

@@ -48,6 +48,27 @@ func Clay__Array_Set[T any](array *Clay__Array[T], index int32, item T) {
 	array.InternalArray[index] = item
 }
 
+func Clay__Array_RemoveSwapback[T any](array *Clay__Array[T], index int32) T {
+	zero := new(T)
+	if !Clay__Array_RangeCheck(index, array.Length) {
+		return *zero
+	}
+	array.Length--
+	removed := array.InternalArray[index]
+	array.InternalArray[index] = array.InternalArray[array.Length]
+	return removed
+}
+
+// typeName arrayName##_RemoveSwapback(arrayName *array, int32_t index) {                                          \
+// 	if (Clay__Array_RangeCheck(index, array->length)) {                                                         \
+// 		array->length--;                                                                                        \
+// 		typeName removed = array->internalArray[index];                                                         \
+// 		array->internalArray[index] = array->internalArray[array->length];                                      \
+// 		return removed;                                                                                         \
+// 	}                                                                                                           \
+// 	return typeName##_DEFAULT;                                                                                  \
+// }
+
 // // The below functions define array bounds checking and convenience functions for a provided type.
 // #define CLAY__ARRAY_DEFINE_FUNCTIONS(typeName, arrayName)                                                       \
 //                                                                                                                 \
@@ -84,15 +105,7 @@ func Clay__Array_Set[T any](array *Clay__Array[T], index int32, item T) {
 //     return Clay__Array_RangeCheck(index, slice->length) ? &slice->internalArray[index] : &typeName##_DEFAULT;   \
 // }                                                                                                               \
 //                                                                                                                 \
-// typeName arrayName##_RemoveSwapback(arrayName *array, int32_t index) {                                          \
-// 	if (Clay__Array_RangeCheck(index, array->length)) {                                                         \
-// 		array->length--;                                                                                        \
-// 		typeName removed = array->internalArray[index];                                                         \
-// 		array->internalArray[index] = array->internalArray[array->length];                                      \
-// 		return removed;                                                                                         \
-// 	}                                                                                                           \
-// 	return typeName##_DEFAULT;                                                                                  \
-// }                                                                                                               \
+//   \
 //                                                                                                                 \
 // void arrayName##_Set(arrayName *array, int32_t index, typeName value) {                                         \
 // 	if (Clay__Array_RangeCheck(index, array->capacity)) {                                                       \
@@ -100,13 +113,3 @@ func Clay__Array_Set[T any](array *Clay__Array[T], index int32, item T) {
 // 		array->length = index < array->length ? array->length : index + 1;                                      \
 // 	}                                                                                                           \
 // }                                                                                                               \
-
-// #define CLAY__ARRAY_DEFINE(typeName, arrayName)     \
-// typedef struct                                      \
-// {                                                   \
-//     int32_t capacity;                               \
-//     int32_t length;                                 \
-//     typeName *internalArray;                        \
-// } arrayName;                                        \
-//                                                     \
-// CLAY__ARRAY_DEFINE_FUNCTIONS(typeName, arrayName)   \

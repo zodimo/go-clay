@@ -21,6 +21,13 @@ func NewClay__Slice[T any](length int32) Clay__Slice[T] {
 	}
 }
 
+func Clay__Slice_Get[T any](slice *Clay__Slice[T], index int32) *T {
+	if !Clay__Array_RangeCheck(index, slice.Length) {
+		return nil
+	}
+	return &slice.InternalArray[index]
+}
+
 // CreateSliceFromRange simulates the process of creating a non-owning slice
 // reference (e.g., ElementConfigs slice) from a larger ClayArray.
 // It performs bounds checking and returns the non-owning ClaySlice.
@@ -38,4 +45,18 @@ func CreateSliceFromRange[T any](baseArray *Clay__Array[T], startOffset int32, s
 		Length:        segmentLength,
 		InternalArray: segmentView,
 	}, nil
+}
+
+// Clay_StringSlice is used to represent non owning string slices, and includes
+// a baseChars field which points to the string this slice is derived from.
+//
+//	typedef struct Clay_StringSlice {
+//	    int32_t length;
+//	    const char *chars;
+//	    const char *baseChars; // The source string / char* that this slice was derived from
+//	} Clay_StringSlice;
+type Clay_StringSlice struct {
+	Length    int32
+	Chars     string
+	BaseChars string
 }

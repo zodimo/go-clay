@@ -1,6 +1,9 @@
 package clay
 
 import (
+	"bytes"
+	"unsafe"
+
 	"github.com/zodimo/go-arena-memory/mem"
 )
 
@@ -9,6 +12,10 @@ import (
 type Clay_Arena = mem.Arena
 
 var Clay__currentContext *Clay_Context
+
+type Clay__QueryScrollOffsetFunction func(elementId uint32, userData interface{}) Clay_Vector2
+
+var Clay__QueryScrollOffset Clay__QueryScrollOffsetFunction = nil
 
 // Primarily created via the CLAY_ID(), CLAY_IDI(), CLAY_ID_LOCAL() and CLAY_IDI_LOCAL() macros.
 // Represents a hashed string ID used for identifying and finding specific clay UI elements, required
@@ -197,7 +204,7 @@ type Clay_LayoutElement struct {
 	ChildrenOrTextContent Clay__LayoutElementChildrenOrTextContent
 	Dimensions            Clay_Dimensions
 	MinDimensions         Clay_Dimensions
-	LayoutConfig          Clay_LayoutConfig
+	LayoutConfig          *Clay_LayoutConfig
 	ElementConfigs        Clay__Slice[Clay_ElementConfig]
 	Id                    uint32
 	FloatingChildrenCount uint16
@@ -363,12 +370,13 @@ type Clay__TextElementData struct {
 type Clay_SharedElementConfig struct {
 	BackgroundColor Clay_Color
 	CornerRadius    Clay_CornerRadius
+	UserData        interface{}
 }
 
-type Clay_ElementConfigType uint8
+type Clay__ElementConfigType uint8
 
 const (
-	CLAY__ELEMENT_CONFIG_TYPE_NONE Clay_ElementConfigType = iota
+	CLAY__ELEMENT_CONFIG_TYPE_NONE Clay__ElementConfigType = iota
 	CLAY__ELEMENT_CONFIG_TYPE_BORDER
 	CLAY__ELEMENT_CONFIG_TYPE_FLOATING
 	CLAY__ELEMENT_CONFIG_TYPE_CLIP
@@ -391,7 +399,7 @@ type Clay_ElementConfigUnion struct {
 }
 
 type Clay_ElementConfig struct {
-	Type   Clay_ElementConfigType
+	Type   Clay__ElementConfigType
 	Config Clay_ElementConfigUnion
 }
 
@@ -401,7 +409,7 @@ type Clay_LayoutElementTreeNode struct {
 	NextChildOffset Clay_Vector2
 }
 
-type Clay_LayoutElementTreeRoot struct {
+type Clay__LayoutElementTreeRoot struct {
 	LayoutElementIndex int32
 	ParentId           uint32 // This can be zero in the case of the root layout tree
 	ClipElementId      uint32 // This can be zero if there is no clip element
@@ -440,7 +448,7 @@ type Clay__MeasuredWord struct {
 }
 
 type Clay__ScrollContainerDataInternal struct {
-	LayoutElement       Clay_LayoutElement
+	LayoutElement       *Clay_LayoutElement
 	BoundingBox         Clay_BoundingBox
 	ContentSize         Clay_Dimensions
 	ScrollOrigin        Clay_Vector2
@@ -449,7 +457,7 @@ type Clay__ScrollContainerDataInternal struct {
 	ScrollPosition      Clay_Vector2
 	PreviousDelta       Clay_Vector2
 	MomentumTime        float32
-	ElementId           Clay_ElementId
+	ElementId           uint32
 	OpenThisFrame       bool
 	PointerScrollActive bool
 }
@@ -509,7 +517,7 @@ type Clay_Context struct {
 	LayoutElementIdStrings             *Clay__Array[Clay_String]
 	WrappedTextLines                   *Clay__Array[Clay__WrappedTextLine]
 	LayoutElementTreeNodeArray1        *Clay__Array[Clay_LayoutElementTreeNode]
-	LayoutElementTreeRoots             *Clay__Array[Clay_LayoutElementTreeRoot]
+	LayoutElementTreeRoots             *Clay__Array[Clay__LayoutElementTreeRoot]
 	LayoutElementsHashMapInternal      *Clay__Array[Clay_LayoutElementHashMapItem]
 	LayoutElementsHashMap              *Clay__Array[int32]
 	MeasureTextHashMapInternal         *Clay__Array[Clay__MeasureTextCacheItem]
@@ -826,113 +834,250 @@ func CLAY(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration) 
 	Clay__ConfigureOpenElement(elementDeclaration)
 }
 
+func Clay__StoreLayoutConfig(config Clay_LayoutConfig) *Clay_LayoutConfig {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		return &Clay_LayoutConfig{}
+	}
+	return Clay__Array_Add(currentContext.LayoutConfigs, config)
+
+}
+
+func Clay__AttachElementConfig(config Clay_ElementConfigUnion, configType Clay__ElementConfigType) Clay_ElementConfig {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		return Clay_ElementConfig{}
+	}
+	openLayoutElement := Clay__GetOpenLayoutElement()
+	openLayoutElement.ElementConfigs.Length++
+	return *Clay__Array_Add(currentContext.ElementConfigs, Clay_ElementConfig{Type: configType, Config: config})
+}
+
+func Clay__MemCmp(s1 unsafe.Pointer, s2 unsafe.Pointer, length int32) bool {
+	// Convert the struct pointers to []byte slices
+	// Note: This is a common but *unsafe* pattern in Go and should be used cautiously.
+	s1Bytes := unsafe.Slice((*byte)(s1), length)
+	s2Bytes := unsafe.Slice((*byte)(s2), length)
+
+	return bytes.Equal(s1Bytes, s2Bytes)
+}
+
+func Clay__MemCmpTyped[T any](s1 *T, s2 *T) bool {
+	size := unsafe.Sizeof(new(T))
+	return Clay__MemCmp(unsafe.Pointer(s1), unsafe.Pointer(s2), int32(size))
+}
+
+func Clay__StoreSharedElementConfig(config Clay_SharedElementConfig) *Clay_SharedElementConfig {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		return &Clay_SharedElementConfig{}
+	}
+	return Clay__Array_Add(currentContext.SharedElementConfigs, config)
+}
+
+func Clay__StoreImageElementConfig(config Clay_ImageElementConfig) *Clay_ImageElementConfig {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		return &Clay_ImageElementConfig{}
+	}
+	return Clay__Array_Add(currentContext.ImageElementConfigs, config)
+}
+
+func Clay__StoreAspectRatioElementConfig(config Clay_AspectRatioElementConfig) *Clay_AspectRatioElementConfig {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		return &Clay_AspectRatioElementConfig{}
+	}
+	return Clay__Array_Add(currentContext.AspectRatioElementConfigs, config)
+}
+func Clay__StoreFloatingElementConfig(config Clay_FloatingElementConfig) *Clay_FloatingElementConfig {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		return &Clay_FloatingElementConfig{}
+	}
+	return Clay__Array_Add(currentContext.FloatingElementConfigs, config)
+}
+
+func Clay__StoreCustomElementConfig(config Clay_CustomElementConfig) *Clay_CustomElementConfig {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		return &Clay_CustomElementConfig{}
+	}
+	return Clay__Array_Add(currentContext.CustomElementConfigs, config)
+}
+
+func Clay__StoreClipElementConfig(config Clay_ClipElementConfig) *Clay_ClipElementConfig {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		return &Clay_ClipElementConfig{}
+	}
+	return Clay__Array_Add(currentContext.ClipElementConfigs, config)
+}
+
+func Clay__StoreBorderElementConfig(config Clay_BorderElementConfig) *Clay_BorderElementConfig {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.BooleanWarnings.MaxElementsExceeded {
+		return &Clay_BorderElementConfig{}
+	}
+	return Clay__Array_Add(currentContext.BorderElementConfigs, config)
+}
+
+func Clay__GetHashMapItem(id uint32) *Clay_LayoutElementHashMapItem {
+	currentContext := Clay_GetCurrentContext()
+	// conversion from uint32 to int32 may not be safe, uint32 can hold larger values than int32
+	hashBucket := int32(id) % currentContext.LayoutElementsHashMap.Capacity
+
+	elementIndex := currentContext.LayoutElementsHashMap.InternalArray[hashBucket]
+	for elementIndex != -1 {
+		hashEntry := Clay__Array_Get(currentContext.LayoutElementsHashMapInternal, elementIndex)
+		if hashEntry.ElementId.Id == id {
+			return hashEntry
+		}
+		elementIndex = hashEntry.NextIndex
+	}
+
+	return &Clay_LayoutElementHashMapItem{}
+}
+
 func Clay__ConfigureOpenElement(elementDeclaration Clay_ElementDeclaration) {
-	// Clay_Context* context = Clay_GetCurrentContext();
-	// Clay_LayoutElement *openLayoutElement = Clay__GetOpenLayoutElement();
-	// openLayoutElement->layoutConfig = Clay__StoreLayoutConfig(declaration->layout);
-	// if ((declaration->layout.sizing.width.type == CLAY__SIZING_TYPE_PERCENT && declaration->layout.sizing.width.size.percent > 1) || (declaration->layout.sizing.height.type == CLAY__SIZING_TYPE_PERCENT && declaration->layout.sizing.height.size.percent > 1)) {
-	//     context->errorHandler.errorHandlerFunction(CLAY__INIT(Clay_ErrorData) {
-	//             .errorType = CLAY_ERROR_TYPE_PERCENTAGE_OVER_1,
-	//             .errorText = CLAY_STRING("An element was configured with CLAY_SIZING_PERCENT, but the provided percentage value was over 1.0. Clay expects a value between 0 and 1, i.e. 20% is 0.2."),
-	//             .userData = context->errorHandler.userData });
-	// }
+	currentContext := Clay_GetCurrentContext()
+	openLayoutElement := Clay__GetOpenLayoutElement()
+	openLayoutElement.LayoutConfig = Clay__StoreLayoutConfig(elementDeclaration.Layout)
 
-	// openLayoutElement->elementConfigs.internalArray = &context->elementConfigs.internalArray[context->elementConfigs.length];
-	// Clay_SharedElementConfig *sharedConfig = NULL;
-	// if (declaration->backgroundColor.a > 0) {
-	//     sharedConfig = Clay__StoreSharedElementConfig(CLAY__INIT(Clay_SharedElementConfig) { .backgroundColor = declaration->backgroundColor });
-	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .sharedElementConfig = sharedConfig }, CLAY__ELEMENT_CONFIG_TYPE_SHARED);
-	// }
-	// if (!Clay__MemCmp((char *)(&declaration->cornerRadius), (char *)(&Clay__CornerRadius_DEFAULT), sizeof(Clay_CornerRadius))) {
-	//     if (sharedConfig) {
-	//         sharedConfig->cornerRadius = declaration->cornerRadius;
-	//     } else {
-	//         sharedConfig = Clay__StoreSharedElementConfig(CLAY__INIT(Clay_SharedElementConfig) { .cornerRadius = declaration->cornerRadius });
-	//         Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .sharedElementConfig = sharedConfig }, CLAY__ELEMENT_CONFIG_TYPE_SHARED);
-	//     }
-	// }
-	// if (declaration->userData != 0) {
-	//     if (sharedConfig) {
-	//         sharedConfig->userData = declaration->userData;
-	//     } else {
-	//         sharedConfig = Clay__StoreSharedElementConfig(CLAY__INIT(Clay_SharedElementConfig) { .userData = declaration->userData });
-	//         Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .sharedElementConfig = sharedConfig }, CLAY__ELEMENT_CONFIG_TYPE_SHARED);
-	//     }
-	// }
-	// if (declaration->image.imageData) {
-	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .imageElementConfig = Clay__StoreImageElementConfig(declaration->image) }, CLAY__ELEMENT_CONFIG_TYPE_IMAGE);
-	// }
-	// if (declaration->aspectRatio.aspectRatio > 0) {
-	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .aspectRatioElementConfig = Clay__StoreAspectRatioElementConfig(declaration->aspectRatio) }, CLAY__ELEMENT_CONFIG_TYPE_ASPECT);
-	//     Clay__int32_tArray_Add(&context->aspectRatioElementIndexes, context->layoutElements.length - 1);
-	// }
-	// if (declaration->floating.attachTo != CLAY_ATTACH_TO_NONE) {
-	//     Clay_FloatingElementConfig floatingConfig = declaration->floating;
-	//     // This looks dodgy but because of the auto generated root element the depth of the tree will always be at least 2 here
-	//     Clay_LayoutElement *hierarchicalParent = Clay_LayoutElementArray_Get(&context->layoutElements, Clay__int32_tArray_GetValue(&context->openLayoutElementStack, context->openLayoutElementStack.length - 2));
-	//     if (hierarchicalParent) {
-	//         uint32_t clipElementId = 0;
-	//         if (declaration->floating.attachTo == CLAY_ATTACH_TO_PARENT) {
-	//             // Attach to the element's direct hierarchical parent
-	//             floatingConfig.parentId = hierarchicalParent->id;
-	//             if (context->openClipElementStack.length > 0) {
-	//                 clipElementId = Clay__int32_tArray_GetValue(&context->openClipElementStack, (int)context->openClipElementStack.length - 1);
-	//             }
-	//         } else if (declaration->floating.attachTo == CLAY_ATTACH_TO_ELEMENT_WITH_ID) {
-	//             Clay_LayoutElementHashMapItem *parentItem = Clay__GetHashMapItem(floatingConfig.parentId);
-	//             if (parentItem == &Clay_LayoutElementHashMapItem_DEFAULT) {
-	//                 context->errorHandler.errorHandlerFunction(CLAY__INIT(Clay_ErrorData) {
-	//                         .errorType = CLAY_ERROR_TYPE_FLOATING_CONTAINER_PARENT_NOT_FOUND,
-	//                         .errorText = CLAY_STRING("A floating element was declared with a parentId, but no element with that ID was found."),
-	//                         .userData = context->errorHandler.userData });
-	//             } else {
-	//                 clipElementId = Clay__int32_tArray_GetValue(&context->layoutElementClipElementIds, (int32_t)(parentItem->layoutElement - context->layoutElements.internalArray));
-	//             }
-	//         } else if (declaration->floating.attachTo == CLAY_ATTACH_TO_ROOT) {
-	//             floatingConfig.parentId = Clay__HashString(CLAY_STRING("Clay__RootContainer"), 0).id;
-	//         }
-	//         if (declaration->floating.clipTo == CLAY_CLIP_TO_NONE) {
-	//             clipElementId = 0;
-	//         }
-	//         int32_t currentElementIndex = Clay__int32_tArray_GetValue(&context->openLayoutElementStack, context->openLayoutElementStack.length - 1);
-	//         Clay__int32_tArray_Set(&context->layoutElementClipElementIds, currentElementIndex, clipElementId);
-	//         Clay__int32_tArray_Add(&context->openClipElementStack, clipElementId);
-	//         Clay__LayoutElementTreeRootArray_Add(&context->layoutElementTreeRoots, CLAY__INIT(Clay__LayoutElementTreeRoot) {
-	//                 .layoutElementIndex = Clay__int32_tArray_GetValue(&context->openLayoutElementStack, context->openLayoutElementStack.length - 1),
-	//                 .parentId = floatingConfig.parentId,
-	//                 .clipElementId = clipElementId,
-	//                 .zIndex = floatingConfig.zIndex,
-	//         });
-	//         Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .floatingElementConfig = Clay__StoreFloatingElementConfig(floatingConfig) }, CLAY__ELEMENT_CONFIG_TYPE_FLOATING);
-	//     }
-	// }
-	// if (declaration->custom.customData) {
-	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .customElementConfig = Clay__StoreCustomElementConfig(declaration->custom) }, CLAY__ELEMENT_CONFIG_TYPE_CUSTOM);
-	// }
+	if elementDeclaration.Layout.Sizing.Width.Type == CLAY__SIZING_TYPE_PERCENT && elementDeclaration.Layout.Sizing.Width.Size.Percent > 1 || elementDeclaration.Layout.Sizing.Height.Type == CLAY__SIZING_TYPE_PERCENT && elementDeclaration.Layout.Sizing.Height.Size.Percent > 1 {
+		currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
+			ErrorType: CLAY_ERROR_TYPE_PERCENTAGE_OVER_1,
+			ErrorText: CLAY_STRING("An element was configured with CLAY_SIZING_PERCENT, but the provided percentage value was over 1.0. Clay expects a value between 0 and 1, i.e. 20% is 0.2."),
+			UserData:  currentContext.ErrorHandler.UserData,
+		})
+	}
 
-	// if (declaration->clip.horizontal | declaration->clip.vertical) {
-	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .clipElementConfig = Clay__StoreClipElementConfig(declaration->clip) }, CLAY__ELEMENT_CONFIG_TYPE_CLIP);
-	//     Clay__int32_tArray_Add(&context->openClipElementStack, (int)openLayoutElement->id);
-	//     // Retrieve or create cached data to track scroll position across frames
-	//     Clay__ScrollContainerDataInternal *scrollOffset = CLAY__NULL;
-	//     for (int32_t i = 0; i < context->scrollContainerDatas.length; i++) {
-	//         Clay__ScrollContainerDataInternal *mapping = Clay__ScrollContainerDataInternalArray_Get(&context->scrollContainerDatas, i);
-	//         if (openLayoutElement->id == mapping->elementId) {
-	//             scrollOffset = mapping;
-	//             scrollOffset->layoutElement = openLayoutElement;
-	//             scrollOffset->openThisFrame = true;
-	//         }
-	//     }
-	//     if (!scrollOffset) {
-	//         scrollOffset = Clay__ScrollContainerDataInternalArray_Add(&context->scrollContainerDatas, CLAY__INIT(Clay__ScrollContainerDataInternal){.layoutElement = openLayoutElement, .scrollOrigin = {-1,-1}, .elementId = openLayoutElement->id, .openThisFrame = true});
-	//     }
-	//     if (context->externalScrollHandlingEnabled) {
-	//         scrollOffset->scrollPosition = Clay__QueryScrollOffset(scrollOffset->elementId, context->queryScrollOffsetUserData);
-	//     }
-	// }
-	// if (!Clay__MemCmp((char *)(&declaration->border.width), (char *)(&Clay__BorderWidth_DEFAULT), sizeof(Clay_BorderWidth))) {
-	//     Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .borderElementConfig = Clay__StoreBorderElementConfig(declaration->border) }, CLAY__ELEMENT_CONFIG_TYPE_BORDER);
-	// }
+	//get a lice of the next available slot in the element configs array
+	nextAvailableElementConfigIndex := currentContext.ElementConfigs.Length
+	elementConfigsSegmentView := currentContext.ElementConfigs.InternalArray[nextAvailableElementConfigIndex : nextAvailableElementConfigIndex+1]
+	openLayoutElement.ElementConfigs.InternalArray = elementConfigsSegmentView
+
+	var sharedConfig *Clay_SharedElementConfig = nil
+
+	if elementDeclaration.BackgroundColor.A > 0 {
+		sharedConfig = new(Clay_SharedElementConfig)
+		sharedConfig.BackgroundColor = elementDeclaration.BackgroundColor
+		Clay__AttachElementConfig(Clay_ElementConfigUnion{SharedElementConfig: sharedConfig}, CLAY__ELEMENT_CONFIG_TYPE_SHARED)
+	}
+	if !Clay__MemCmpTyped(&elementDeclaration.CornerRadius, &Clay_CornerRadius{}) {
+		if sharedConfig != nil {
+			sharedConfig.CornerRadius = elementDeclaration.CornerRadius
+		} else {
+			sharedConfig = new(Clay_SharedElementConfig)
+			sharedConfig.CornerRadius = elementDeclaration.CornerRadius
+			Clay__AttachElementConfig(Clay_ElementConfigUnion{SharedElementConfig: sharedConfig}, CLAY__ELEMENT_CONFIG_TYPE_SHARED)
+		}
+	}
+
+	if elementDeclaration.UserData != nil {
+		if sharedConfig != nil {
+			sharedConfig.UserData = elementDeclaration.UserData
+		} else {
+			sharedConfig = Clay__StoreSharedElementConfig(Clay_SharedElementConfig{UserData: elementDeclaration.UserData})
+			Clay__AttachElementConfig(Clay_ElementConfigUnion{SharedElementConfig: sharedConfig}, CLAY__ELEMENT_CONFIG_TYPE_SHARED)
+		}
+	}
+
+	if elementDeclaration.Image.ImageData != nil {
+		Clay__AttachElementConfig(Clay_ElementConfigUnion{ImageElementConfig: Clay__StoreImageElementConfig(elementDeclaration.Image)}, CLAY__ELEMENT_CONFIG_TYPE_IMAGE)
+	}
+	if elementDeclaration.AspectRatio.AspectRatio > 0 {
+		Clay__AttachElementConfig(Clay_ElementConfigUnion{AspectRatioElementConfig: Clay__StoreAspectRatioElementConfig(elementDeclaration.AspectRatio)}, CLAY__ELEMENT_CONFIG_TYPE_ASPECT)
+		Clay__Array_Add(currentContext.AspectRatioElementIndexes, currentContext.LayoutElements.Length-1)
+	}
+
+	if elementDeclaration.Floating.AttachTo != CLAY_ATTACH_TO_NONE {
+		floatingConfig := elementDeclaration.Floating
+		// This looks dodgy but because of the auto generated root element the depth of the tree will always be at least 2 here
+
+		hierarchicalParent := Clay__Array_Get[Clay_LayoutElement](currentContext.LayoutElements, Clay__Array_GetValue[int32](currentContext.OpenLayoutElementStack, currentContext.OpenLayoutElementStack.Length-2))
+		if hierarchicalParent != nil {
+			var clipElementId int32 = 0
+			if elementDeclaration.Floating.AttachTo == CLAY_ATTACH_TO_PARENT {
+				// Attach to the element's direct hierarchical parent
+				floatingConfig.ParentId = hierarchicalParent.Id
+				if currentContext.OpenClipElementStack.Length > 0 {
+					clipElementId = Clay__Array_GetValue(currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length-1)
+				} else if elementDeclaration.Floating.AttachTo == CLAY_ATTACH_TO_ELEMENT_WITH_ID {
+					parentItem := Clay__GetHashMapItem(floatingConfig.ParentId)
+					// check if parentItem is pointing to the default item
+					// @TODO CLAY has default structs for all types, so we need to use that instead of a pointer to the default item
+					defaultItem := &Clay_LayoutElementHashMapItem{}
+					if parentItem == defaultItem {
+						currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
+							ErrorType: CLAY_ERROR_TYPE_FLOATING_CONTAINER_PARENT_NOT_FOUND,
+							ErrorText: CLAY_STRING("A floating element was declared with a parentId, but no element with that ID was found."),
+							UserData:  currentContext.ErrorHandler.UserData,
+						})
+					} else {
+						//  clipElementId = Clay__int32_tArray_GetValue(&context->layoutElementClipElementIds, (int32_t)(parentItem->layoutElement - context->layoutElements.internalArray));
+						//TODO I dont know if this is correct
+						clipItemIndex := uintptr(unsafe.Pointer(parentItem.LayoutElement)) - uintptr(unsafe.Pointer(&currentContext.LayoutElements.InternalArray[0]))
+						clipElementId = Clay__Array_GetValue[int32](currentContext.LayoutElementClipElementIds, int32(clipItemIndex))
+					}
+				} else if elementDeclaration.Floating.AttachTo == CLAY_ATTACH_TO_ROOT {
+					floatingConfig.ParentId = Clay__HashString(CLAY_STRING("Clay__RootContainer"), 0).Id
+				}
+
+				if elementDeclaration.Floating.ClipTo == CLAY_CLIP_TO_NONE {
+					clipElementId = 0
+				}
+				currentElementIndex := Clay__Array_GetValue[int32](currentContext.OpenLayoutElementStack, currentContext.OpenLayoutElementStack.Length-1)
+				Clay__Array_Set(currentContext.LayoutElementClipElementIds, currentElementIndex, clipElementId)
+				Clay__Array_Add(currentContext.OpenClipElementStack, clipElementId)
+				Clay__Array_Add(currentContext.LayoutElementTreeRoots, Clay__LayoutElementTreeRoot{
+					LayoutElementIndex: Clay__Array_GetValue[int32](currentContext.OpenLayoutElementStack, currentContext.OpenLayoutElementStack.Length-1),
+					ParentId:           floatingConfig.ParentId,
+					ClipElementId:      uint32(clipElementId),
+					ZIndex:             floatingConfig.ZIndex,
+				})
+				Clay__AttachElementConfig(Clay_ElementConfigUnion{FloatingElementConfig: Clay__StoreFloatingElementConfig(floatingConfig)}, CLAY__ELEMENT_CONFIG_TYPE_FLOATING)
+			}
+		}
+		if elementDeclaration.Custom.CustomData != nil {
+			Clay__AttachElementConfig(Clay_ElementConfigUnion{
+				CustomElementConfig: Clay__StoreCustomElementConfig(elementDeclaration.Custom),
+			}, CLAY__ELEMENT_CONFIG_TYPE_CUSTOM)
+		}
+	}
+
+	if elementDeclaration.Clip.Horizontal || elementDeclaration.Clip.Vertical {
+		Clay__AttachElementConfig(Clay_ElementConfigUnion{
+			ClipElementConfig: Clay__StoreClipElementConfig(elementDeclaration.Clip),
+		}, CLAY__ELEMENT_CONFIG_TYPE_CLIP)
+
+		Clay__Array_Add(currentContext.OpenClipElementStack, int32(openLayoutElement.Id))
+		// Retrieve or create cached data to track scroll position across frames
+		var scrollOffset *Clay__ScrollContainerDataInternal = nil
+		for i := int32(0); i < currentContext.ScrollContainerDatas.Length; i++ {
+			mapping := Clay__Array_Get[Clay__ScrollContainerDataInternal](currentContext.ScrollContainerDatas, i)
+			if openLayoutElement.Id == mapping.ElementId {
+				scrollOffset = mapping
+				scrollOffset.LayoutElement = openLayoutElement
+				scrollOffset.OpenThisFrame = true
+			}
+		}
+		if scrollOffset == nil {
+			scrollOffset = Clay__Array_Add(currentContext.ScrollContainerDatas, Clay__ScrollContainerDataInternal{
+				LayoutElement: openLayoutElement,
+				ScrollOrigin:  Clay_Vector2{-1, -1},
+				ElementId:     openLayoutElement.Id,
+				OpenThisFrame: true})
+		}
+		if currentContext.ExternalScrollHandlingEnabled {
+			scrollOffset.ScrollPosition = Clay__QueryScrollOffset(scrollOffset.ElementId, currentContext.QueryScrollOffsetUserData)
+		}
+	}
+	if !Clay__MemCmpTyped(&elementDeclaration.Border.Width, &Clay_BorderWidth{}) {
+		Clay__AttachElementConfig(Clay_ElementConfigUnion{
+			BorderElementConfig: Clay__StoreBorderElementConfig(elementDeclaration.Border),
+		}, CLAY__ELEMENT_CONFIG_TYPE_BORDER)
+	}
 }
 
 func Clay_SetLayoutDimensions(dimensions Clay_Dimensions) {
@@ -1089,7 +1234,7 @@ func Clay__OpenTextElement(text Clay_String, textConfig Clay_TextElementConfig) 
 			InternalArray: segmentView,
 		}
 	}
-	textElement.LayoutConfig = Clay_LayoutConfig{}
+	textElement.LayoutConfig = &Clay_LayoutConfig{}
 	parentElement.ChildrenOrTextContent.Children.Length++
 }
 
@@ -1147,7 +1292,7 @@ func Clay__InitializeEphemeralMemory(context *Clay_Context) {
 	context.LayoutElementIdStrings = Clay__Array_Allocate_Arena[Clay_String](maxElementCount, arena)
 	context.WrappedTextLines = Clay__Array_Allocate_Arena[Clay__WrappedTextLine](maxElementCount, arena)
 	context.LayoutElementTreeNodeArray1 = Clay__Array_Allocate_Arena[Clay_LayoutElementTreeNode](maxElementCount, arena)
-	context.LayoutElementTreeRoots = Clay__Array_Allocate_Arena[Clay_LayoutElementTreeRoot](maxElementCount, arena)
+	context.LayoutElementTreeRoots = Clay__Array_Allocate_Arena[Clay__LayoutElementTreeRoot](maxElementCount, arena)
 	context.LayoutElementChildren = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
 	context.OpenLayoutElementStack = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
 	context.TextElementData = Clay__Array_Allocate_Arena[Clay__TextElementData](maxElementCount, arena)

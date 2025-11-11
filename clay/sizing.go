@@ -21,16 +21,15 @@ type Clay_SizingMinMax struct {
 	Max float32
 }
 
+type Clay_SizingAxisSize struct {
+	MinMax  Clay_SizingMinMax // Controls the minimum and maximum size in pixels that this element is allowed to grow or shrink to, overriding sizing types such as FIT or GROW.
+	Percent float32           // Expects 0-1 range. Clamps the axis size to a percent of the parent container's axis size minus padding and child gaps.
+}
+
 // Controls the sizing of this element along one axis inside its parent container.
 type Clay_SizingAxis struct {
 	Type Clay__SizingType
-
-	// SizeMinMax is mutually exclusive with SizePercent.
-
-	// Controls the minimum and maximum size in pixels that this element is allowed to grow or shrink to, overriding sizing types such as FIT or GROW.
-	SizeMinMax Clay_SizingMinMax
-	// Expects 0-1 range. Clamps the axis size to a percent of the parent container's axis size minus padding and child gaps.
-	SizePercent float32
+	Size Clay_SizingAxisSize
 }
 
 // Controls the sizing of this element along one axis inside its parent container.
@@ -43,21 +42,21 @@ type Clay_Sizing struct {
 
 func CLAY_SIZING_FIT(minMax Clay_SizingMinMax) Clay_SizingAxis {
 	return Clay_SizingAxis{
-		Type:       CLAY__SIZING_TYPE_FIT,
-		SizeMinMax: minMax,
+		Type: CLAY__SIZING_TYPE_FIT,
+		Size: Clay_SizingAxisSize{MinMax: minMax},
 	}
 }
 
 func CLAY_SIZING_GROW(minMax Clay_SizingMinMax) Clay_SizingAxis {
 	return Clay_SizingAxis{
-		Type:       CLAY__SIZING_TYPE_GROW,
-		SizeMinMax: minMax,
+		Type: CLAY__SIZING_TYPE_GROW,
+		Size: Clay_SizingAxisSize{MinMax: minMax},
 	}
 }
 func CLAY_SIZING_FIXED(fixedSize float32) Clay_SizingAxis {
 	return Clay_SizingAxis{
-		Type:       CLAY__SIZING_TYPE_FIXED,
-		SizeMinMax: Clay_SizingMinMax{Min: fixedSize, Max: fixedSize},
+		Type: CLAY__SIZING_TYPE_FIXED,
+		Size: Clay_SizingAxisSize{MinMax: Clay_SizingMinMax{Min: fixedSize, Max: fixedSize}},
 	}
 }
 
@@ -66,7 +65,7 @@ func CLAY_SIZING_PERCENT(percentOfParent float32) Clay_SizingAxis {
 		panic("percentOfParent must be between 0 and 1")
 	}
 	return Clay_SizingAxis{
-		Type:        CLAY__SIZING_TYPE_PERCENT,
-		SizePercent: percentOfParent,
+		Type: CLAY__SIZING_TYPE_PERCENT,
+		Size: Clay_SizingAxisSize{Percent: percentOfParent},
 	}
 }

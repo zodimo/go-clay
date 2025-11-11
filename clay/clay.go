@@ -424,12 +424,12 @@ type Clay__DebugElementData struct {
 type Clay_LayoutElementHashMapItem struct { // todo get this struct into a single cache line
 	BoundingBox           Clay_BoundingBox
 	ElementId             Clay_ElementId
-	LayoutElement         Clay_LayoutElement
+	LayoutElement         *Clay_LayoutElement
 	OnHoverFunction       func(elementId Clay_ElementId, pointerInfo Clay_PointerData, userData any)
 	HoverFunctionUserData any
 	NextIndex             int32
 	Generation            uint32
-	DebugData             Clay__DebugElementData
+	DebugData             *Clay__DebugElementData
 }
 
 type Clay__MeasuredWord struct {
@@ -971,7 +971,54 @@ func Clay__HashNumber(offset uint32, seed uint32) Clay_ElementId {
 }
 
 func Clay__AddHashMapItem(elementId Clay_ElementId, layoutElement *Clay_LayoutElement) *Clay_LayoutElementHashMapItem {
-	panic("not implemented")
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.LayoutElementsHashMapInternal.Length == currentContext.LayoutElementsHashMapInternal.Capacity-1 {
+		return nil
+	}
+	item := Clay_LayoutElementHashMapItem{
+		ElementId:     elementId,
+		LayoutElement: layoutElement,
+		NextIndex:     -1,
+		Generation:    currentContext.Generation + 1,
+	}
+
+	hashBucket := int32(elementId.Id) % currentContext.LayoutElementsHashMap.Capacity
+	hashItemPrevious := int32(-1)
+	hashItemIndex := currentContext.LayoutElementsHashMap.InternalArray[hashBucket]
+	for hashItemIndex != -1 { // Just replace collision, not a big deal - leave it up to the end user
+		hashItem := Clay__Array_Get[Clay_LayoutElementHashMapItem](currentContext.LayoutElementsHashMapInternal, hashItemIndex)
+		if hashItem.ElementId.Id == elementId.Id { // Collision - resolve based on generation
+			item.NextIndex = hashItem.NextIndex
+			if hashItem.Generation <= currentContext.Generation { // First collision - assume this is the "same" element
+				hashItem.ElementId = elementId // Make sure to copy this across. If the stringId reference has changed, we should update the hash item to use the new one.
+				hashItem.Generation = currentContext.Generation + 1
+				hashItem.LayoutElement = layoutElement
+				hashItem.DebugData.Collision = false
+				hashItem.OnHoverFunction = nil
+				hashItem.HoverFunctionUserData = 0
+			} else { // Multiple collisions this frame - two elements have the same ID
+				currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
+					ErrorType: CLAY_ERROR_TYPE_DUPLICATE_ID,
+					ErrorText: CLAY_STRING("An element with this ID was already previously declared during this layout."),
+					UserData:  currentContext.ErrorHandler.UserData,
+				})
+				if currentContext.DebugModeEnabled {
+					hashItem.DebugData.Collision = true
+				}
+			}
+		}
+		hashItemPrevious = hashItemIndex
+		hashItemIndex = hashItem.NextIndex
+	}
+
+	hashItem := Clay__Array_Add(currentContext.LayoutElementsHashMapInternal, item)
+	hashItem.DebugData = Clay__Array_Add(currentContext.DebugElementData, Clay__DebugElementData{})
+	if hashItemPrevious != -1 {
+		Clay__Array_Get[Clay_LayoutElementHashMapItem](currentContext.LayoutElementsHashMapInternal, hashItemPrevious).NextIndex = currentContext.LayoutElementsHashMapInternal.Length - 1
+	} else {
+		currentContext.LayoutElementsHashMap.InternalArray[hashBucket] = currentContext.LayoutElementsHashMapInternal.Length - 1
+	}
+	return hashItem
 }
 
 func Clay__OpenTextElement(text Clay_String, textConfig Clay_TextElementConfig) {

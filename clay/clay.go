@@ -1028,18 +1028,19 @@ func Clay_EndLayout() []Clay_RenderCommand {
 }
 
 func Clay__AddRenderCommand(renderCommand Clay_RenderCommand) {
-	// Clay_Context* context = Clay_GetCurrentContext();
-	// if (context->renderCommands.length < context->renderCommands.capacity - 1) {
-	//     Clay_RenderCommandArray_Add(&context->renderCommands, renderCommand);
-	// } else {
-	//     if (!context->booleanWarnings.maxRenderCommandsExceeded) {
-	//         context->booleanWarnings.maxRenderCommandsExceeded = true;
-	//         context->errorHandler.errorHandlerFunction(CLAY__INIT(Clay_ErrorData) {
-	//             .errorType = CLAY_ERROR_TYPE_ELEMENTS_CAPACITY_EXCEEDED,
-	//             .errorText = CLAY_STRING("Clay ran out of capacity while attempting to create render commands. This is usually caused by a large amount of wrapping text elements while close to the max element capacity. Try using Clay_SetMaxElementCount() with a higher value."),
-	//             .userData = context->errorHandler.userData });
-	//     }
-	// }
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.RenderCommands.Length < currentContext.RenderCommands.Capacity-1 {
+		Clay__Array_Add(currentContext.RenderCommands, renderCommand)
+	} else {
+		if !currentContext.BooleanWarnings.MaxRenderCommandsExceeded {
+			currentContext.BooleanWarnings.MaxRenderCommandsExceeded = true
+			currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
+				ErrorType: CLAY_ERROR_TYPE_ELEMENTS_CAPACITY_EXCEEDED,
+				ErrorText: CLAY_STRING("Clay ran out of capacity while attempting to create render commands. This is usually caused by a large amount of wrapping text elements while close to the max element capacity. Try using Clay_SetMaxElementCount() with a higher value."),
+				UserData:  currentContext.ErrorHandler.UserData,
+			})
+		}
+	}
 }
 
 func Clay__OpenElementWithId(elementId Clay_ElementId) {

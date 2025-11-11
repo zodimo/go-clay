@@ -1,14 +1,33 @@
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 Clay_LayoutElementHashMapItem* Clay__AddHashMapItem(Clay_ElementId elementId, Clay_LayoutElement* layoutElement) {
     Clay_Context* context = Clay_GetCurrentContext();
     if (context->layoutElementsHashMapInternal.length == context->layoutElementsHashMapInternal.capacity - 1) {
         return NULL;
     }
-    Clay_LayoutElementHashMapItem item = { .elementId = elementId, .layoutElement = layoutElement, .nextIndex = -1, .generation = context->generation + 1 };
+    
+    Clay_LayoutElementHashMapItem item = { 
+        .elementId = elementId, 
+        .layoutElement = layoutElement,
+         .nextIndex = -1, 
+         .generation = context->generation + 1
+         };
     uint32_t hashBucket = elementId.id % context->layoutElementsHashMap.capacity;
     int32_t hashItemPrevious = -1;
     int32_t hashItemIndex = context->layoutElementsHashMap.internalArray[hashBucket];
+
     while (hashItemIndex != -1) { // Just replace collision, not a big deal - leave it up to the end user
         Clay_LayoutElementHashMapItem *hashItem = Clay__LayoutElementHashMapItemArray_Get(&context->layoutElementsHashMapInternal, hashItemIndex);
         if (hashItem->elementId.id == elementId.id) { // Collision - resolve based on generation

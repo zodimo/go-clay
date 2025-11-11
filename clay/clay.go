@@ -2,6 +2,7 @@ package clay
 
 import (
 	"bytes"
+	"fmt"
 	"unsafe"
 
 	"github.com/zodimo/go-arena-memory/mem"
@@ -35,7 +36,7 @@ type Clay_String struct {
 	IsStaticallyAllocated bool
 	Length                int32
 	// The underlying character memory. Note: this will not be copied and will not extend the lifetime of the underlying memory.
-	Chars []rune
+	Chars string
 }
 
 type Clay_Dimensions struct {
@@ -97,9 +98,6 @@ type Clay_TextElementConfig struct {
 	// CLAY_TEXT_ALIGN_RIGHT - Horizontally aligns wrapped lines of text to the right hand side of their bounding box.
 	TextAlignment Clay_TextAlignment
 }
-
-const Clay__defaultMaxElementCount int32 = 8192
-const Clay__defaultMaxMeasureTextWordCacheCount int32 = 16384
 
 type Clay_ErrorType uint8
 
@@ -769,7 +767,39 @@ func Clay_GetCurrentContext() *Clay_Context {
 	return Clay__currentContext
 }
 
+var Clay__debugViewWidth = 400
+
 func Clay_BeginLayout() {
+
+	currentContext := Clay_GetCurrentContext()
+	Clay__InitializeEphemeralMemory(currentContext)
+	currentContext.Generation++
+	currentContext.DynamicElementIndex = 0
+	// Set up the root container that covers the entire window
+	rootDimensions := Clay_Dimensions{
+		Width:  currentContext.LayoutDimensions.Width,
+		Height: currentContext.LayoutDimensions.Height,
+	}
+	if currentContext.DebugModeEnabled {
+		rootDimensions.Width -= float32(Clay__debugViewWidth)
+	}
+
+	currentContext.BooleanWarnings = Clay_BooleanWarnings{}
+	Clay__OpenElementWithId(CLAY_ID("Clay__RootContainer"))
+	Clay__ConfigureOpenElement(Clay_ElementDeclaration{
+		Layout: Clay_LayoutConfig{
+			Sizing: Clay_Sizing{
+				Width:  CLAY_SIZING_FIXED(rootDimensions.Width),
+				Height: CLAY_SIZING_FIXED(rootDimensions.Height),
+			},
+		},
+	})
+
+	Clay__Array_Add(currentContext.OpenLayoutElementStack, 0)
+	Clay__Array_Add(currentContext.LayoutElementTreeRoots, Clay__LayoutElementTreeRoot{
+		LayoutElementIndex: 0,
+	})
+
 }
 
 func Clay_EndLayout() Clay__Array[Clay_RenderCommand] {
@@ -801,31 +831,11 @@ func Clay__OpenElementWithId(elementId Clay_ElementId) {
 	}
 }
 
-func Clay__HashString(key Clay_String, seed uint32) Clay_ElementId {
-	hash := seed
-
-	for i := int32(0); i < int32(len(key.Chars)); i++ {
-		hash += uint32(key.Chars[i])
-		hash += (hash << 10)
-		hash ^= (hash >> 6)
-	}
-
-	hash += (hash << 3)
-	hash ^= (hash >> 11)
-	hash += (hash << 15)
-	return Clay_ElementId{
-		Id:       hash + 1,
-		Offset:   0,
-		BaseId:   hash + 1,
-		StringId: key,
-	} // Reserve the hash result of zero as "null id"
-}
-
 func CLAY_STRING(label string) Clay_String {
 	return Clay_String{
 		IsStaticallyAllocated: true,
 		Length:                int32(len(label)),
-		Chars:                 []rune(label),
+		Chars:                 label,
 	}
 }
 
@@ -1104,17 +1114,6 @@ func Clay__MeasureTextCached(text *Clay_String, textConfig Clay_TextElementConfi
 	panic("not implemented")
 }
 
-func Clay__HashNumber(offset uint32, seed uint32) Clay_ElementId {
-	hash := seed
-	hash += (offset + 48)
-	hash += (hash << 10)
-	hash ^= (hash >> 6)
-	hash += (hash << 3)
-	hash ^= (hash >> 11)
-	hash += (hash << 15)
-	return Clay_ElementId{Id: hash + 1, Offset: offset, BaseId: hash + 1, StringId: Clay_String{Chars: []rune{}}}
-}
-
 func Clay__AddHashMapItem(elementId Clay_ElementId, layoutElement *Clay_LayoutElement) *Clay_LayoutElementHashMapItem {
 	currentContext := Clay_GetCurrentContext()
 	if currentContext.LayoutElementsHashMapInternal.Length == currentContext.LayoutElementsHashMapInternal.Capacity-1 {
@@ -1128,6 +1127,7 @@ func Clay__AddHashMapItem(elementId Clay_ElementId, layoutElement *Clay_LayoutEl
 	}
 
 	hashBucket := int32(elementId.Id) % currentContext.LayoutElementsHashMap.Capacity
+	fmt.Println("hashBucket", hashBucket, "elementId.Id", elementId.Id, "int elementId.Id", int(elementId.Id), "currentContext.LayoutElementsHashMap.Capacity", currentContext.LayoutElementsHashMap.Capacity)
 	hashItemPrevious := int32(-1)
 	hashItemIndex := currentContext.LayoutElementsHashMap.InternalArray[hashBucket]
 	for hashItemIndex != -1 { // Just replace collision, not a big deal - leave it up to the end user

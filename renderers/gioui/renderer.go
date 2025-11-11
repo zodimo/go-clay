@@ -15,4 +15,4 @@ func NewRenderer(ops *op.Ops) *GioRenderer {
 	}
 }
 
-func (r *GioRenderer) Render(commands clay.Clay__Array[clay.Clay_RenderCommand]) {}
+func (r *GioRenderer) Render(commands []clay.Clay_RenderCommand) {}

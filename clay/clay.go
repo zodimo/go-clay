@@ -2,9 +2,13 @@ package clay
 
 import (
 	"hash/fnv"
+
+	"github.com/zodimo/go-arena-memory/mem"
 )
 
 // CLAY_DLL_EXPORT Clay_Context* Clay_Initialize(Clay_Arena arena, Clay_Dimensions layoutDimensions, Clay_ErrorHandler errorHandler);
+
+type Clay_Arena = mem.Arena
 
 var Clay__currentContext *Clay_Context
 
@@ -998,7 +1002,7 @@ func Clay__InitializeEphemeralMemory(context *Clay_Context) {
 }
 
 func Clay__Context_Allocate_Arena(arena *Clay_Arena) *Clay_Context {
-	clay_Context, err := AllocateStruct[Clay_Context](arena)
+	clay_Context, err := mem.AllocateStruct[Clay_Context](arena)
 	if err != nil {
 		return nil
 	}

@@ -1,6 +1,8 @@
 package clay
 
-import "hash/fnv"
+import (
+	"hash/fnv"
+)
 
 // CLAY_DLL_EXPORT Clay_Context* Clay_Initialize(Clay_Arena arena, Clay_Dimensions layoutDimensions, Clay_ErrorHandler errorHandler);
 
@@ -9,7 +11,6 @@ var Clay__currentContext *Clay_Context
 type Clay_ElementId = uint32
 type Clay_String = string
 
-type Clay_Arena struct{}
 type Clay_Dimensions struct {
 	Width  float32
 	Height float32
@@ -691,6 +692,12 @@ type Clay_ElementDeclaration struct {
 }
 
 func Clay_Initialize(arena Clay_Arena, layoutDimensions Clay_Dimensions, errorHandler Clay_ErrorHandler) *Clay_Context {
+
+	clay_Context := Clay__Context_Allocate_Arena(&arena)
+	if clay_Context == nil {
+		return nil
+	}
+
 	oldContext := Clay_GetCurrentContext()
 
 	newContext := &Clay_Context{
@@ -988,4 +995,12 @@ func Clay__InitializeEphemeralMemory(context *Clay_Context) {
 	// context->reusableElementIndexBuffer = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
 	// context->layoutElementClipElementIds = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
 	// context->dynamicStringData = Clay__charArray_Allocate_Arena(maxElementCount, arena);
+}
+
+func Clay__Context_Allocate_Arena(arena *Clay_Arena) *Clay_Context {
+	clay_Context, err := AllocateStruct[Clay_Context](arena)
+	if err != nil {
+		return nil
+	}
+	return clay_Context
 }

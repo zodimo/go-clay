@@ -165,12 +165,20 @@ type Clay__Array[T any] struct {
 	InternalArray []T
 }
 
-func Clay__Array_Allocate_Arena[T any](capacity int32) Clay__Array[T] {
+func NewClay__Array[T any](capacity int32) Clay__Array[T] {
 	return Clay__Array[T]{
 		Capacity:      capacity,
 		Length:        0,
 		InternalArray: make([]T, capacity),
 	}
+}
+
+func Clay__Array_Allocate_Arena[T any](capacity int32, arena *Clay_Arena) *Clay__Array[T] {
+	outArr, err := mem.AllocateStructObject[Clay__Array[T]](arena, NewClay__Array[T](capacity))
+	if err != nil {
+		panic(err)
+	}
+	return outArr
 }
 
 type Clay_LayoutElement struct {
@@ -444,7 +452,7 @@ type Clay_Context struct {
 	ErrorHandler                 Clay_ErrorHandler
 
 	BooleanWarnings Clay_BooleanWarnings
-	Warnings        Clay__Array[Clay__Warning]
+	Warnings        *Clay__Array[Clay__Warning]
 
 	PointerInfo      Clay_PointerData
 	LayoutDimensions Clay_Dimensions
@@ -466,46 +474,46 @@ type Clay_Context struct {
 	InternalArena Clay_Arena
 
 	// Layout Elements / Render Commands
-	LayoutElements              Clay__Array[Clay_LayoutElement]
-	RenderCommands              Clay__Array[Clay_RenderCommand]
-	OpenLayoutElementStack      Clay__Array[int32]
-	LayoutElementChildren       Clay__Array[int32]
-	LayoutElementChildrenBuffer Clay__Array[int32]
-	TextElementData             Clay__Array[Clay__TextElementData]
-	AspectRatioElementIndexes   Clay__Array[int32]
-	ReusableElementIndexBuffer  Clay__Array[int32]
-	LayoutElementClipElementIds Clay__Array[int32]
+	LayoutElements              *Clay__Array[Clay_LayoutElement]
+	RenderCommands              *Clay__Array[Clay_RenderCommand]
+	OpenLayoutElementStack      *Clay__Array[int32]
+	LayoutElementChildren       *Clay__Array[int32]
+	LayoutElementChildrenBuffer *Clay__Array[int32]
+	TextElementData             *Clay__Array[Clay__TextElementData]
+	AspectRatioElementIndexes   *Clay__Array[int32]
+	ReusableElementIndexBuffer  *Clay__Array[int32]
+	LayoutElementClipElementIds *Clay__Array[int32]
 
-	// Configs
-	LayoutConfigs             Clay__Array[Clay_LayoutConfig]
-	ElementConfigs            Clay__Array[Clay_ElementConfig]
-	TextElementConfigs        Clay__Array[Clay_TextElementConfig]
-	AspectRatioElementConfigs Clay__Array[Clay_AspectRatioElementConfig]
-	ImageElementConfigs       Clay__Array[Clay_ImageElementConfig]
-	FloatingElementConfigs    Clay__Array[Clay_FloatingElementConfig]
-	ClipElementConfigs        Clay__Array[Clay_ClipElementConfig]
-	CustomElementConfigs      Clay__Array[Clay_CustomElementConfig]
-	BorderElementConfigs      Clay__Array[Clay_BorderElementConfig]
-	SharedElementConfigs      Clay__Array[Clay_SharedElementConfig]
+	// Configs*
+	LayoutConfigs             *Clay__Array[Clay_LayoutConfig]
+	ElementConfigs            *Clay__Array[Clay_ElementConfig]
+	TextElementConfigs        *Clay__Array[Clay_TextElementConfig]
+	AspectRatioElementConfigs *Clay__Array[Clay_AspectRatioElementConfig]
+	ImageElementConfigs       *Clay__Array[Clay_ImageElementConfig]
+	FloatingElementConfigs    *Clay__Array[Clay_FloatingElementConfig]
+	ClipElementConfigs        *Clay__Array[Clay_ClipElementConfig]
+	CustomElementConfigs      *Clay__Array[Clay_CustomElementConfig]
+	BorderElementConfigs      *Clay__Array[Clay_BorderElementConfig]
+	SharedElementConfigs      *Clay__Array[Clay_SharedElementConfig]
 
 	// Misc Data Structures
-	LayoutElementIdStrings             Clay__Array[Clay_String]
-	WrappedTextLines                   Clay__Array[Clay__WrappedTextLine]
-	LayoutElementTreeNodeArray1        Clay__Array[Clay_LayoutElementTreeNode]
-	LayoutElementTreeRoots             Clay__Array[Clay_LayoutElementTreeRoot]
-	LayoutElementsHashMapInternal      Clay__Array[Clay_LayoutElementHashMapItem]
-	LayoutElementsHashMap              Clay__Array[int32]
-	MeasureTextHashMapInternal         Clay__Array[int32]
-	MeasureTextHashMapInternalFreeList Clay__Array[int32]
-	MeasureTextHashMap                 Clay__Array[int32]
-	MeasuredWords                      Clay__Array[Clay__MeasuredWord]
-	MeasuredWordsFreeList              Clay__Array[int32]
-	OpenClipElementStack               Clay__Array[int32]
-	PointerOverIds                     Clay__Array[Clay_ElementId]
-	ScrollContainerDatas               Clay__Array[Clay__ScrollContainerDataInternal]
-	TreeNodeVisited                    Clay__Array[bool]
-	DynamicStringData                  Clay__Array[byte] // char
-	DebugElementData                   Clay__Array[Clay__DebugElementData]
+	LayoutElementIdStrings             *Clay__Array[Clay_String]
+	WrappedTextLines                   *Clay__Array[Clay__WrappedTextLine]
+	LayoutElementTreeNodeArray1        *Clay__Array[Clay_LayoutElementTreeNode]
+	LayoutElementTreeRoots             *Clay__Array[Clay_LayoutElementTreeRoot]
+	LayoutElementsHashMapInternal      *Clay__Array[Clay_LayoutElementHashMapItem]
+	LayoutElementsHashMap              *Clay__Array[int32]
+	MeasureTextHashMapInternal         *Clay__Array[Clay__MeasureTextCacheItem]
+	MeasureTextHashMapInternalFreeList *Clay__Array[int32]
+	MeasureTextHashMap                 *Clay__Array[int32]
+	MeasuredWords                      *Clay__Array[Clay__MeasuredWord]
+	MeasuredWordsFreeList              *Clay__Array[int32]
+	OpenClipElementStack               *Clay__Array[int32]
+	PointerOverIds                     *Clay__Array[Clay_ElementId]
+	ScrollContainerDatas               *Clay__Array[Clay__ScrollContainerDataInternal]
+	TreeNodeVisited                    *Clay__Array[bool]
+	DynamicStringData                  *Clay__Array[byte] // char
+	DebugElementData                   *Clay__Array[Clay__DebugElementData]
 }
 
 type Clay_Padding struct {
@@ -944,61 +952,72 @@ func Clay__OpenTextElement(text Clay_String, textConfig Clay_TextElementConfig) 
 	// parentElement->childrenOrTextContent.children.length++;
 }
 
+type Clay__MeasureTextCacheItem struct {
+	UnwrappedDimensions     Clay_Dimensions
+	MeasuredWordsStartIndex int32
+	MinWidth                float32
+	ContainsNewlines        bool
+	// Hash map data
+	Id         uint32
+	NextIndex  int32
+	Generation uint32
+}
+
 func Clay__InitializePersistentMemory(context *Clay_Context) {
 	// Persistent memory - initialized once and not reset
-	// maxElementCount := context.MaxElementCount;
-	// maxMeasureTextCacheWordCount := context.MaxMeasureTextCacheWordCount;
-	// arena = &context.internalArena;
+	maxElementCount := context.MaxElementCount
+	maxMeasureTextCacheWordCount := context.MaxMeasureTextCacheWordCount
+	arena := &context.InternalArena
 
-	// context->scrollContainerDatas = Clay__ScrollContainerDataInternalArray_Allocate_Arena(100, arena);
-	// context->layoutElementsHashMapInternal = Clay__LayoutElementHashMapItemArray_Allocate_Arena(maxElementCount, arena);
-	// context->layoutElementsHashMap = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
-	// context->measureTextHashMapInternal = Clay__MeasureTextCacheItemArray_Allocate_Arena(maxElementCount, arena);
-	// context->measureTextHashMapInternalFreeList = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
-	// context->measuredWordsFreeList = Clay__int32_tArray_Allocate_Arena(maxMeasureTextCacheWordCount, arena);
-	// context->measureTextHashMap = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
-	// context->measuredWords = Clay__MeasuredWordArray_Allocate_Arena(maxMeasureTextCacheWordCount, arena);
-	// context->pointerOverIds = Clay_ElementIdArray_Allocate_Arena(maxElementCount, arena);
-	// context->debugElementData = Clay__DebugElementDataArray_Allocate_Arena(maxElementCount, arena);
-	// context->arenaResetOffset = arena->nextAllocation;
+	context.ScrollContainerDatas = Clay__Array_Allocate_Arena[Clay__ScrollContainerDataInternal](100, arena)
+	context.LayoutElementsHashMapInternal = Clay__Array_Allocate_Arena[Clay_LayoutElementHashMapItem](maxElementCount, arena)
+	context.LayoutElementsHashMap = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
+	context.MeasureTextHashMapInternal = Clay__Array_Allocate_Arena[Clay__MeasureTextCacheItem](maxElementCount, arena)
+	context.MeasureTextHashMapInternalFreeList = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
+	context.MeasuredWordsFreeList = Clay__Array_Allocate_Arena[int32](maxMeasureTextCacheWordCount, arena)
+	context.MeasureTextHashMap = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
+	context.MeasuredWords = Clay__Array_Allocate_Arena[Clay__MeasuredWord](maxMeasureTextCacheWordCount, arena)
+	context.PointerOverIds = Clay__Array_Allocate_Arena[Clay_ElementId](maxElementCount, arena)
+	context.DebugElementData = Clay__Array_Allocate_Arena[Clay__DebugElementData](maxElementCount, arena)
+	context.ArenaResetOffset = arena.NextAllocation
 }
 
 func Clay__InitializeEphemeralMemory(context *Clay_Context) {
-	// int32_t maxElementCount = context->maxElementCount;
-	// // Ephemeral Memory - reset every frame
-	// Clay_Arena *arena = &context->internalArena;
-	// arena->nextAllocation = context->arenaResetOffset;
+	maxElementCount := context.MaxElementCount
+	// Ephemeral Memory - reset every frame
+	arena := &context.InternalArena
+	arena.NextAllocation = context.ArenaResetOffset
 
-	// context->layoutElementChildrenBuffer = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
-	// context->layoutElements = Clay_LayoutElementArray_Allocate_Arena(maxElementCount, arena);
-	// context->warnings = Clay__WarningArray_Allocate_Arena(100, arena);
+	context.LayoutElementChildrenBuffer = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
+	context.LayoutElements = Clay__Array_Allocate_Arena[Clay_LayoutElement](maxElementCount, arena)
+	context.Warnings = Clay__Array_Allocate_Arena[Clay__Warning](100, arena)
 
-	// context->layoutConfigs = Clay__LayoutConfigArray_Allocate_Arena(maxElementCount, arena);
-	// context->elementConfigs = Clay__ElementConfigArray_Allocate_Arena(maxElementCount, arena);
-	// context->textElementConfigs = Clay__TextElementConfigArray_Allocate_Arena(maxElementCount, arena);
-	// context->aspectRatioElementConfigs = Clay__AspectRatioElementConfigArray_Allocate_Arena(maxElementCount, arena);
-	// context->imageElementConfigs = Clay__ImageElementConfigArray_Allocate_Arena(maxElementCount, arena);
-	// context->floatingElementConfigs = Clay__FloatingElementConfigArray_Allocate_Arena(maxElementCount, arena);
-	// context->clipElementConfigs = Clay__ClipElementConfigArray_Allocate_Arena(maxElementCount, arena);
-	// context->customElementConfigs = Clay__CustomElementConfigArray_Allocate_Arena(maxElementCount, arena);
-	// context->borderElementConfigs = Clay__BorderElementConfigArray_Allocate_Arena(maxElementCount, arena);
-	// context->sharedElementConfigs = Clay__SharedElementConfigArray_Allocate_Arena(maxElementCount, arena);
+	context.LayoutConfigs = Clay__Array_Allocate_Arena[Clay_LayoutConfig](maxElementCount, arena)
+	context.ElementConfigs = Clay__Array_Allocate_Arena[Clay_ElementConfig](maxElementCount, arena)
+	context.TextElementConfigs = Clay__Array_Allocate_Arena[Clay_TextElementConfig](maxElementCount, arena)
+	context.AspectRatioElementConfigs = Clay__Array_Allocate_Arena[Clay_AspectRatioElementConfig](maxElementCount, arena)
+	context.ImageElementConfigs = Clay__Array_Allocate_Arena[Clay_ImageElementConfig](maxElementCount, arena)
+	context.FloatingElementConfigs = Clay__Array_Allocate_Arena[Clay_FloatingElementConfig](maxElementCount, arena)
+	context.ClipElementConfigs = Clay__Array_Allocate_Arena[Clay_ClipElementConfig](maxElementCount, arena)
+	context.CustomElementConfigs = Clay__Array_Allocate_Arena[Clay_CustomElementConfig](maxElementCount, arena)
+	context.BorderElementConfigs = Clay__Array_Allocate_Arena[Clay_BorderElementConfig](maxElementCount, arena)
+	context.SharedElementConfigs = Clay__Array_Allocate_Arena[Clay_SharedElementConfig](maxElementCount, arena)
 
-	// context->layoutElementIdStrings = Clay__StringArray_Allocate_Arena(maxElementCount, arena);
-	// context->wrappedTextLines = Clay__WrappedTextLineArray_Allocate_Arena(maxElementCount, arena);
-	// context->layoutElementTreeNodeArray1 = Clay__LayoutElementTreeNodeArray_Allocate_Arena(maxElementCount, arena);
-	// context->layoutElementTreeRoots = Clay__LayoutElementTreeRootArray_Allocate_Arena(maxElementCount, arena);
-	// context->layoutElementChildren = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
-	// context->openLayoutElementStack = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
-	// context->textElementData = Clay__TextElementDataArray_Allocate_Arena(maxElementCount, arena);
-	// context->aspectRatioElementIndexes = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
-	// context->renderCommands = Clay_RenderCommandArray_Allocate_Arena(maxElementCount, arena);
-	// context->treeNodeVisited = Clay__boolArray_Allocate_Arena(maxElementCount, arena);
-	// context->treeNodeVisited.length = context->treeNodeVisited.capacity; // This array is accessed directly rather than behaving as a list
-	// context->openClipElementStack = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
-	// context->reusableElementIndexBuffer = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
-	// context->layoutElementClipElementIds = Clay__int32_tArray_Allocate_Arena(maxElementCount, arena);
-	// context->dynamicStringData = Clay__charArray_Allocate_Arena(maxElementCount, arena);
+	context.LayoutElementIdStrings = Clay__Array_Allocate_Arena[Clay_String](maxElementCount, arena)
+	context.WrappedTextLines = Clay__Array_Allocate_Arena[Clay__WrappedTextLine](maxElementCount, arena)
+	context.LayoutElementTreeNodeArray1 = Clay__Array_Allocate_Arena[Clay_LayoutElementTreeNode](maxElementCount, arena)
+	context.LayoutElementTreeRoots = Clay__Array_Allocate_Arena[Clay_LayoutElementTreeRoot](maxElementCount, arena)
+	context.LayoutElementChildren = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
+	context.OpenLayoutElementStack = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
+	context.TextElementData = Clay__Array_Allocate_Arena[Clay__TextElementData](maxElementCount, arena)
+	context.AspectRatioElementIndexes = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
+	context.RenderCommands = Clay__Array_Allocate_Arena[Clay_RenderCommand](maxElementCount, arena)
+	context.TreeNodeVisited = Clay__Array_Allocate_Arena[bool](maxElementCount, arena)
+	context.TreeNodeVisited.Length = context.TreeNodeVisited.Capacity // This array is accessed directly rather than behaving as a list
+	context.OpenClipElementStack = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
+	context.ReusableElementIndexBuffer = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
+	context.LayoutElementClipElementIds = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
+	context.DynamicStringData = Clay__Array_Allocate_Arena[byte](maxElementCount, arena)
 }
 
 func Clay__Context_Allocate_Arena(arena *Clay_Arena) *Clay_Context {

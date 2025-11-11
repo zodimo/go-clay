@@ -775,22 +775,22 @@ func Clay_EndLayout() Clay__Array[Clay_RenderCommand] {
 var CLAY__DEFAULT_STRUCT = Clay_LayoutElement{}
 
 func Clay__OpenElementWithId(elementId Clay_ElementId) {
-	context := Clay_GetCurrentContext()
-	if context.LayoutElements.Length == context.LayoutElements.Capacity-1 || context.BooleanWarnings.MaxElementsExceeded {
-		context.BooleanWarnings.MaxElementsExceeded = true
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.LayoutElements.Length == currentContext.LayoutElements.Capacity-1 || currentContext.BooleanWarnings.MaxElementsExceeded {
+		currentContext.BooleanWarnings.MaxElementsExceeded = true
 		return
 	}
-	layoutElement := CLAY__DEFAULT_STRUCT
+	layoutElement := Clay_LayoutElement{}
 	layoutElement.Id = elementId.Id
-	// Clay_LayoutElement * openLayoutElement = Clay_LayoutElementArray_Add(&context->layoutElements, layoutElement);
-	// Clay__int32_tArray_Add(&context->openLayoutElementStack, context->layoutElements.length - 1);
-	// Clay__AddHashMapItem(elementId, openLayoutElement);
-	// Clay__StringArray_Add(&context->layoutElementIdStrings, elementId.stringId);
-	// if (context->openClipElementStack.length > 0) {
-	//     Clay__int32_tArray_Set(&context->layoutElementClipElementIds, context->layoutElements.length - 1, Clay__int32_tArray_GetValue(&context->openClipElementStack, (int)context->openClipElementStack.length - 1));
-	// } else {
-	//     Clay__int32_tArray_Set(&context->layoutElementClipElementIds, context->layoutElements.length - 1, 0);
-	// }
+	openLayoutElement := Clay__Array_Add(currentContext.LayoutElements, layoutElement)
+	Clay__Array_Add(currentContext.OpenLayoutElementStack, currentContext.LayoutElements.Length-1)
+	Clay__AddHashMapItem(elementId, openLayoutElement)
+	Clay__Array_Add(currentContext.LayoutElementIdStrings, elementId.StringId)
+	if currentContext.OpenClipElementStack.Length > 0 {
+		Clay__Array_Set(currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length-1, Clay__Array_GetValue(currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length-1))
+	} else {
+		Clay__Array_Set(currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length-1, 0)
+	}
 }
 
 func Clay__HashString(key Clay_String, seed uint32) Clay_ElementId {

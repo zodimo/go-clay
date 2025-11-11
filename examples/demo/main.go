@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -36,7 +37,7 @@ var (
 
 func run(w *app.Window) error {
 	var ops op.Ops
-	memory := make([]byte, 1024*1024)
+	memory := make([]byte, 10*1024*1024)
 	arena, err := mem.NewArena(memory)
 	if err != nil {
 		return err
@@ -120,13 +121,14 @@ func run(w *app.Window) error {
 			// main.End()
 
 			commands := clay.Clay_EndLayout()
-			renderer.Render(commands)
 
-			// fmt.Printf("Generated %d render commands\n", len(commands))
-			// for i, cmd := range commands {
-			// 	fmt.Printf("Command %d: Type=%d, ID=%d, Bounds=%+v\n",
-			// 		i, cmd.CommandType, cmd.ID, cmd.BoundingBox)
-			// }
+			fmt.Printf("Generated %d render commands\n", len(commands))
+			for i, cmd := range commands {
+				fmt.Printf("Command %d: Type=%d, ID=%d, Bounds=%+v\n",
+					i, cmd.CommandType, cmd.Id, cmd.BoundingBox)
+			}
+
+			renderer.Render(commands)
 
 			// renderer.SetViewport(clay.BoundingBox{
 			// 	X: 0, Y: 0,

@@ -1,9 +1,6 @@
 package clay
 
 import (
-	"bytes"
-	"unsafe"
-
 	"github.com/zodimo/go-arena-memory/mem"
 )
 
@@ -11,11 +8,7 @@ import (
 
 type Clay_Arena = mem.Arena
 
-var Clay__currentContext *Clay_Context
-
 type Clay__QueryScrollOffsetFunction func(elementId uint32, userData interface{}) Clay_Vector2
-
-var Clay__QueryScrollOffset Clay__QueryScrollOffsetFunction = nil
 
 // Primarily created via the CLAY_ID(), CLAY_IDI(), CLAY_ID_LOCAL() and CLAY_IDI_LOCAL() macros.
 // Represents a hashed string ID used for identifying and finding specific clay UI elements, required
@@ -165,13 +158,6 @@ type Clay_PointerData struct {
 	// CLAY_POINTER_DATA_RELEASED_THIS_FRAME - The left mouse button click or touch was released this frame.
 	// CLAY_POINTER_DATA_RELEASED - The left mouse button click or touch is not currently down / was released at some point in the past.
 	State Clay_PointerDataInteractionState
-}
-
-var Clay__ErrorHandlerFunctionDefault = Clay_ErrorHandler{
-	ErrorHandlerFunction: func(errorData Clay_ErrorData) {
-		// Do nothing
-	},
-	UserData: nil,
 }
 
 type Clay_ArraySlice[T any] struct {
@@ -326,19 +312,6 @@ type Clay_RenderCommand struct {
 	// CLAY_RENDER_COMMAND_TYPE_SCISSOR_END - The renderer should finish any previously active clipping, and begin rendering elements in full again.
 	// CLAY_RENDER_COMMAND_TYPE_CUSTOM - The renderer should provide a custom implementation for handling this render command based on its .customData
 	CommandType Clay_RenderCommandType
-}
-
-func (a *Clay__Array[T]) Get(index int32) T {
-	return a.InternalArray[index]
-}
-func (a *Clay__Array[T]) Add(value T) {
-	a.InternalArray[a.Length] = value
-	a.Length++
-}
-func (a *Clay__Array[T]) Set(index int32, value T) {
-	if index < a.Length {
-		a.InternalArray[index] = value
-	}
 }
 
 type Clay_BooleanWarnings struct {
@@ -766,8 +739,6 @@ func Clay_GetCurrentContext() *Clay_Context {
 	return Clay__currentContext
 }
 
-var Clay__debugViewWidth = 400
-
 func Clay_BeginLayout() {
 
 	currentContext := Clay_GetCurrentContext()
@@ -1094,20 +1065,6 @@ func Clay__AttachElementConfig(config Clay_ElementConfigUnion, configType Clay__
 	return *Clay__Array_Add(currentContext.ElementConfigs, Clay_ElementConfig{Type: configType, Config: config})
 }
 
-func Clay__MemCmp(s1 unsafe.Pointer, s2 unsafe.Pointer, length int32) bool {
-	// Convert the struct pointers to []byte slices
-	// Note: This is a common but *unsafe* pattern in Go and should be used cautiously.
-	s1Bytes := unsafe.Slice((*byte)(s1), length)
-	s2Bytes := unsafe.Slice((*byte)(s2), length)
-
-	return bytes.Equal(s1Bytes, s2Bytes)
-}
-
-func Clay__MemCmpTyped[T any](s1 *T, s2 *T) bool {
-	size := unsafe.Sizeof(new(T))
-	return Clay__MemCmp(unsafe.Pointer(s1), unsafe.Pointer(s2), int32(size))
-}
-
 func Clay__StoreSharedElementConfig(config Clay_SharedElementConfig) *Clay_SharedElementConfig {
 	currentContext := Clay_GetCurrentContext()
 	if currentContext.BooleanWarnings.MaxElementsExceeded {
@@ -1256,10 +1213,16 @@ func Clay__ConfigureOpenElement(elementDeclaration Clay_ElementDeclaration) {
 							UserData:  currentContext.ErrorHandler.UserData,
 						})
 					} else {
-						//  clipElementId = Clay__int32_tArray_GetValue(&context->layoutElementClipElementIds, (int32_t)(parentItem->layoutElement - context->layoutElements.internalArray));
-						//TODO I dont know if this is correct
-						clipItemIndex := uintptr(unsafe.Pointer(parentItem.LayoutElement)) - uintptr(unsafe.Pointer(&currentContext.LayoutElements.InternalArray[0]))
-						clipElementId = Clay__Array_GetValue[int32](currentContext.LayoutElementClipElementIds, int32(clipItemIndex))
+						var clipItemIndex int32 = -1
+						for i, elem := range currentContext.LayoutElements.InternalArray {
+							if &elem == parentItem.LayoutElement {
+								clipItemIndex = int32(i)
+								break
+							}
+						}
+						if clipItemIndex != -1 {
+							clipElementId = Clay__Array_GetValue[int32](currentContext.LayoutElementClipElementIds, clipItemIndex)
+						}
 					}
 				} else if elementDeclaration.Floating.AttachTo == CLAY_ATTACH_TO_ROOT {
 					floatingConfig.ParentId = Clay__HashString(CLAY_STRING("Clay__RootContainer"), 0).Id

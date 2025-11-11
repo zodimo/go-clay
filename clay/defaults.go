@@ -5,3 +5,10 @@ package clay
 
 var CLAY__STRING_DEFAULT = Clay_String{Length: 0, Chars: ""}
 var Clay_LayoutConfig_DEFAULT = Clay_LayoutConfig{}
+
+var Clay__ErrorHandlerFunctionDefault = Clay_ErrorHandler{
+	ErrorHandlerFunction: func(errorData Clay_ErrorData) {
+		// Do nothing
+	},
+	UserData: nil,
+}

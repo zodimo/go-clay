@@ -685,24 +685,31 @@ func Clay__CalculateFinalLayout() {
 		Clay__Array_Add(&dfsBuffer, Clay__LayoutElementTreeNode{LayoutElement: Clay__Array_Get(&currentContext.LayoutElements, layoutElementTreeRoot.LayoutElementIndex)})
 	}
 
-	// while (dfsBuffer.length > 0) {
-	// 	Clay__LayoutElementTreeNode *currentElementTreeNode = Clay__LayoutElementTreeNodeArray_Get(&dfsBuffer, (int)dfsBuffer.length - 1);
-	// 	Clay_LayoutElement *currentElement = currentElementTreeNode->layoutElement;
-	// 	if (!context->treeNodeVisited.internalArray[dfsBuffer.length - 1]) {
-	// 		context->treeNodeVisited.internalArray[dfsBuffer.length - 1] = true;
-	// 		// If the element has no children or is the container for a text element, don't bother inspecting it
-	// 		if (Clay__ElementHasConfig(currentElement, CLAY__ELEMENT_CONFIG_TYPE_TEXT) || currentElement->childrenOrTextContent.children.length == 0) {
-	// 			dfsBuffer.length--;
-	// 			continue;
-	// 		}
-	// 		// Add the children to the DFS buffer (needs to be pushed in reverse so that stack traversal is in correct layout order)
-	// 		for (int32_t i = 0; i < currentElement->childrenOrTextContent.children.length; i++) {
-	// 			context->treeNodeVisited.internalArray[dfsBuffer.length] = false;
-	// 			Clay__LayoutElementTreeNodeArray_Add(&dfsBuffer, CLAY__INIT(Clay__LayoutElementTreeNode) { .layoutElement = Clay_LayoutElementArray_Get(&context->layoutElements, currentElement->childrenOrTextContent.children.elements[i]) });
-	// 		}
-	// 		continue;
-	// 	}
-	// 	dfsBuffer.length--;
+	for dfsBuffer.Length > 0 {
+		currentElementTreeNode := Clay__Array_Get(&dfsBuffer, dfsBuffer.Length-1)
+		currentElement := currentElementTreeNode.LayoutElement
+		if !Clay__Array_GetValue(&currentContext.TreeNodeVisited, dfsBuffer.Length-1) {
+			Clay__Array_Set(&currentContext.TreeNodeVisited, dfsBuffer.Length-1, true)
+			// If the element has no children or is the container for a text element, don't bother inspecting it
+			if Clay__ElementHasConfig(currentElement, CLAY__ELEMENT_CONFIG_TYPE_TEXT) || currentElement.ChildrenOrTextContent.Children.Length == 0 {
+				dfsBuffer.Length--
+				continue
+			}
+			// Add the children to the DFS buffer (needs to be pushed in reverse so that stack traversal is in correct layout order)
+			for childIndex := int32(0); childIndex < int32(currentElement.ChildrenOrTextContent.Children.Length); childIndex++ {
+				Clay__Array_Set(&currentContext.TreeNodeVisited, dfsBuffer.Length, false)
+				Clay__Array_Add(&dfsBuffer, Clay__LayoutElementTreeNode{
+					LayoutElement: Clay__Array_Get(
+						&currentContext.LayoutElements,
+						currentElement.ChildrenOrTextContent.Children.Elements[childIndex],
+					),
+				},
+				)
+			}
+			continue
+		}
+		dfsBuffer.Length--
+	}
 
 	// 	// DFS node has been visited, this is on the way back up to the root
 	// 	Clay_LayoutConfig *layoutConfig = currentElement->layoutConfig;

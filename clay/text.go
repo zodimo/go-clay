@@ -79,3 +79,53 @@ type Clay__MeasuredWord struct {
 	Width       float32
 	Next        int32
 }
+
+type TextOption func(*Clay_TextElementConfig)
+
+func TextWithColor(color Clay_Color) TextOption {
+	return func(config *Clay_TextElementConfig) {
+		config.TextColor = color
+	}
+}
+
+func TextWithFontId(fontId uint16) TextOption {
+	return func(config *Clay_TextElementConfig) {
+		config.FontId = fontId
+	}
+}
+
+func TextWithFontSize(fontSize uint16) TextOption {
+	return func(config *Clay_TextElementConfig) {
+		config.FontSize = fontSize
+	}
+}
+
+func TextWithLetterSpacing(letterSpacing uint16) TextOption {
+	return func(config *Clay_TextElementConfig) {
+		config.LetterSpacing = letterSpacing
+	}
+}
+
+func TextWithLineHeight(lineHeight uint16) TextOption {
+	return func(config *Clay_TextElementConfig) {
+		config.LineHeight = lineHeight
+	}
+}
+
+func TextWithWrapMode(wrapMode Clay_TextElementConfigWrapMode) TextOption {
+	return func(config *Clay_TextElementConfig) {
+		config.WrapMode = wrapMode
+	}
+}
+
+func TextWithTextAlignment(textAlignment Clay_TextAlignment) TextOption {
+	return func(config *Clay_TextElementConfig) {
+		config.TextAlignment = textAlignment
+	}
+}
+
+func TextWithUserData(userData interface{}) TextOption {
+	return func(config *Clay_TextElementConfig) {
+		config.UserData = userData
+	}
+}

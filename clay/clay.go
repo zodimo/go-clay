@@ -1344,6 +1344,7 @@ func Clay__AddHashMapItem(elementId Clay_ElementId, layoutElement *Clay_LayoutEl
 					hashItem.DebugData.Collision = true
 				}
 			}
+			return hashItem
 		}
 		hashItemPrevious = hashItemIndex
 		hashItemIndex = hashItem.NextIndex

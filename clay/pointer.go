@@ -20,3 +20,14 @@ type Clay_PointerData struct {
 	// CLAY_POINTER_DATA_RELEASED - The left mouse button click or touch is not currently down / was released at some point in the past.
 	State Clay_PointerDataInteractionState
 }
+
+// Controls how mouse pointer events like hover and click are captured or passed through to elements underneath a floating element.
+type Clay_PointerCaptureMode uint8
+
+const (
+	// (default) "Capture" the pointer event and don't allow events like hover and click to pass through to elements underneath.
+	CLAY_POINTER_CAPTURE_MODE_CAPTURE Clay_PointerCaptureMode = iota
+	// CLAY_POINTER_CAPTURE_MODE_PARENT, TODO pass pointer through to attached parent
+	// Transparently pass through pointer events like hover and click to elements underneath the floating element.
+	CLAY_POINTER_CAPTURE_MODE_PASSTHROUGH
+)

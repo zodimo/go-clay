@@ -79,3 +79,11 @@ type Clay__MeasuredWord struct {
 	Width       float32
 	Next        int32
 }
+
+func CLAY_STRING(label string) Clay_String {
+	return Clay_String{
+		IsStaticallyAllocated: true,
+		Length:                int32(len(label)),
+		Chars:                 []byte(label),
+	}
+}

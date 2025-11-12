@@ -1,7 +1,5 @@
 package clay
 
-var Clay__currentContext *Clay_Context
-
 var QueryScrollOffsetFunction Clay__QueryScrollOffsetFunction = nil
 var MeasureTextFunction Clay__MeasureTextFunction = nil
 

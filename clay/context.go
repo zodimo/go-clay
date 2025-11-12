@@ -1,5 +1,7 @@
 package clay
 
+var Clay__currentContext *Clay_Context
+
 type Clay_Context struct {
 	MaxElementCount              int32
 	MaxMeasureTextCacheWordCount int32
@@ -69,4 +71,12 @@ type Clay_Context struct {
 	TreeNodeVisited                    Clay__Array[bool]
 	DynamicStringData                  Clay__Array[byte] // char
 	DebugElementData                   Clay__Array[Clay__DebugElementData]
+}
+
+func Clay_SetCurrentContext(context *Clay_Context) {
+	Clay__currentContext = context
+}
+
+func Clay_GetCurrentContext() *Clay_Context {
+	return Clay__currentContext
 }

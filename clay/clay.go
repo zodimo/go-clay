@@ -1,7 +1,6 @@
 package clay
 
 import (
-	"cmp"
 	"fmt"
 
 	"github.com/zodimo/clay-go/pkg/mem"
@@ -169,20 +168,6 @@ type Clay_FloatingAttachPoints struct {
 	Parent  Clay_FloatingAttachPointType
 }
 
-// Controls how mouse pointer events like hover and click are captured or passed through to elements underneath a floating element.
-type Clay_PointerCaptureMode uint8
-
-const (
-	// (default) "Capture" the pointer event and don't allow events like hover and click to pass through to elements underneath.
-
-	CLAY_POINTER_CAPTURE_MODE_CAPTURE Clay_PointerCaptureMode = iota
-	//    CLAY_POINTER_CAPTURE_MODE_PARENT, TODO pass pointer through to attached parent
-
-	// Transparently pass through pointer events like hover and click to elements underneath the floating element.
-
-	CLAY_POINTER_CAPTURE_MODE_PASSTHROUGH
-)
-
 // Controls which element a floating element is "attached" to (i.e. relative offset from).
 type Clay_FloatingAttachToElement uint8
 
@@ -254,24 +239,6 @@ type Clay_ClipElementConfig struct {
 
 }
 
-// Controls settings related to element borders.
-type Clay_BorderElementConfig struct {
-	Color Clay_Color       // Controls the color of all borders with width > 0. Conventionally represented as 0-255, but interpretation is up to the renderer.
-	Width Clay_BorderWidth // Controls the widths of individual borders. At least one of these should be > 0 for a BORDER render command to be generated.
-
-}
-
-type Clay_BorderWidth struct {
-	Left   uint16
-	Right  uint16
-	Top    uint16
-	Bottom uint16
-	// Creates borders between each child element, depending on the .layoutDirection.
-	// e.g. for LEFT_TO_RIGHT, borders will be vertical lines, and for TOP_TO_BOTTOM borders will be horizontal lines.
-	// .betweenChildren borders will result in individual RECTANGLE render commands being generated.
-	BetweenChildren uint16
-}
-
 type Clay_ElementDeclaration struct {
 	Layout          Clay_LayoutConfig
 	BackgroundColor Clay_Color
@@ -326,14 +293,6 @@ func Clay_Initialize(arena Clay_Arena, layoutDimensions Clay_Dimensions, errorHa
 	return newContext
 }
 
-func Clay_SetCurrentContext(context *Clay_Context) {
-	Clay__currentContext = context
-}
-
-func Clay_GetCurrentContext() *Clay_Context {
-	return Clay__currentContext
-}
-
 func Clay_BeginLayout() {
 
 	currentContext := Clay_GetCurrentContext()
@@ -365,13 +324,6 @@ func Clay_BeginLayout() {
 		LayoutElementIndex: 0,
 	})
 
-}
-
-func CLAY__MAX[T cmp.Ordered](x, y T) T {
-	return max(x, y)
-}
-func CLAY__MIN[T cmp.Ordered](x, y T) T {
-	return min(x, y)
 }
 
 func Clay__CloseElement() {
@@ -597,10 +549,6 @@ func Clay__FindElementConfigWithType(element *Clay_LayoutElement, configType Cla
 	return Clay_ElementConfigUnion{}
 }
 
-func Clay__FloatEqual(x, y float32) bool {
-	subtracted := x - y
-	return subtracted < CLAY__EPSILON && subtracted > -CLAY__EPSILON
-}
 func Clay__SizeContainersAlongAxis(xAxis bool) {
 	currentContext := Clay_GetCurrentContext()
 	bfsBuffer := currentContext.LayoutElementChildrenBuffer
@@ -1082,14 +1030,6 @@ func Clay__OpenElementWithId(elementId Clay_ElementId) {
 	}
 }
 
-func CLAY_STRING(label string) Clay_String {
-	return Clay_String{
-		IsStaticallyAllocated: true,
-		Length:                int32(len(label)),
-		Chars:                 []byte(label),
-	}
-}
-
 func CLAY(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration) {
 	Clay__OpenElementWithId(elementID)
 	Clay__ConfigureOpenElement(elementDeclaration)
@@ -1167,23 +1107,6 @@ func Clay__StoreBorderElementConfig(config Clay_BorderElementConfig) *Clay_Borde
 		return &Clay_BorderElementConfig{}
 	}
 	return Clay__Array_Add(&currentContext.BorderElementConfigs, config)
-}
-
-func Clay__GetHashMapItem(id uint32) *Clay_LayoutElementHashMapItem {
-	currentContext := Clay_GetCurrentContext()
-	// Perform modulo with uint32 first to avoid negative results, then cast to int32
-	hashBucket := int32(id % uint32(currentContext.LayoutElementsHashMap.Capacity))
-
-	elementIndex := Clay__Array_GetValue(&currentContext.LayoutElementsHashMap, hashBucket)
-	for elementIndex != -1 {
-		hashEntry := Clay__Array_Get(&currentContext.LayoutElementsHashMapInternal, elementIndex)
-		if hashEntry.ElementId.Id == id {
-			return hashEntry
-		}
-		elementIndex = hashEntry.NextIndex
-	}
-
-	return &Clay_LayoutElementHashMapItem{}
 }
 
 func Clay__ConfigureOpenElement(elementDeclaration Clay_ElementDeclaration) {

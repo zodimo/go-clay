@@ -17,3 +17,16 @@ type Clay_BorderElementConfig struct {
 	Width Clay_BorderWidth // Controls the widths of individual borders. At least one of these should be > 0 for a BORDER render command to be generated.
 
 }
+
+type Clay_Color struct {
+	R float32 // range between 0 and 1
+	G float32 // range between 0 and 1
+	B float32 // range between 0 and 1
+	A float32 // range between 0 and 1
+}
+type Clay_CornerRadius struct {
+	TopLeft     float32
+	TopRight    float32
+	BottomLeft  float32
+	BottomRight float32
+}

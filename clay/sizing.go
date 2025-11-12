@@ -32,14 +32,6 @@ type Clay_SizingAxis struct {
 	Size Clay_SizingAxisSize
 }
 
-// Controls the sizing of this element along one axis inside its parent container.
-type Clay_Sizing struct {
-	// Controls the width sizing of the element, along the x axis.
-	Width Clay_SizingAxis
-	// Controls the height sizing of the element, along the y axis.
-	Height Clay_SizingAxis
-}
-
 func CLAY_SIZING_FIT(minMax Clay_SizingMinMax) Clay_SizingAxis {
 	return Clay_SizingAxis{
 		Type: CLAY__SIZING_TYPE_FIT,

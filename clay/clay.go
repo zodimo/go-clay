@@ -21,144 +21,9 @@ type Clay_ElementId struct {
 	StringId Clay_String // The string id to hash.
 }
 
-// Note: Clay_String is not guaranteed to be null terminated. It may be if created from a literal C string,
-// but it is also used to represent slices.
-type Clay_String struct {
-	// Set this boolean to true if the char* data underlying this string will live for the entire lifetime of the program.
-	// This will automatically be set for strings created with CLAY_STRING, as the macro requires a string literal.
-	IsStaticallyAllocated bool
-	Length                int32
-	// The underlying character memory. Note: this will not be copied and will not extend the lifetime of the underlying memory.
-	Chars []byte
-}
-
-type Clay_Dimensions struct {
-	Width  float32
-	Height float32
-}
-type Clay_ErrorHandler struct {
-	ErrorHandlerFunction func(errorData Clay_ErrorData)
-	UserData             interface{}
-}
-
-// Controls how text "wraps", that is how it is broken into multiple lines when there is insufficient horizontal space.
-type Clay_TextElementConfigWrapMode uint8
-
-const (
-	// (default) breaks on whitespace characters.
-	CLAY_TEXT_WRAP_WORDS Clay_TextElementConfigWrapMode = iota
-	// Don't break on space characters, only on newlines.
-	CLAY_TEXT_WRAP_NEWLINES
-	// Disable text wrapping entirely.
-	CLAY_TEXT_WRAP_NONE
-)
-
-// Controls how wrapped lines of text are horizontally aligned within the outer text bounding box.
-type Clay_TextAlignment uint8
-
-const (
-	// (default) Horizontally aligns wrapped lines of text to the left hand side of their bounding box.
-	CLAY_TEXT_ALIGN_LEFT Clay_TextAlignment = iota
-	// Horizontally aligns wrapped lines of text to the center of their bounding box.
-	CLAY_TEXT_ALIGN_CENTER
-	// Horizontally aligns wrapped lines of text to the right hand side of their bounding box.
-	CLAY_TEXT_ALIGN_RIGHT
-)
-
-// Controls various functionality related to text elements.
-type Clay_TextElementConfig struct {
-	// A pointer that will be transparently passed through to the resulting render command.
-	UserData interface{}
-	// The RGBA color of the font to render, conventionally specified as 0-255.
-	TextColor Clay_Color
-	// An integer transparently passed to Clay_MeasureText to identify the font to use.
-	// The debug view will pass fontId = 0 for its internal text.
-	FontId uint16
-	// Controls the size of the font. Handled by the function provided to Clay_MeasureText.
-	FontSize uint16
-	// Controls extra horizontal spacing between characters. Handled by the function provided to Clay_MeasureText.
-	LetterSpacing uint16
-	// Controls additional vertical space between wrapped lines of text.
-	LineHeight uint16
-	// Controls how text "wraps", that is how it is broken into multiple lines when there is insufficient horizontal space.
-	// CLAY_TEXT_WRAP_WORDS (default) breaks on whitespace characters.
-	// CLAY_TEXT_WRAP_NEWLINES doesn't break on space characters, only on newlines.
-	// CLAY_TEXT_WRAP_NONE disables wrapping entirely.
-	WrapMode Clay_TextElementConfigWrapMode
-	// Controls how wrapped lines of text are horizontally aligned within the outer text bounding box.
-	// CLAY_TEXT_ALIGN_LEFT (default) - Horizontally aligns wrapped lines of text to the left hand side of their bounding box.
-	// CLAY_TEXT_ALIGN_CENTER - Horizontally aligns wrapped lines of text to the center of their bounding box.
-	// CLAY_TEXT_ALIGN_RIGHT - Horizontally aligns wrapped lines of text to the right hand side of their bounding box.
-	TextAlignment Clay_TextAlignment
-}
-
-type Clay_ErrorType uint8
-
-// Represents the type of error clay encountered while computing layout.
-const (
-	// A text measurement function wasn't provided using Clay_SetMeasureTextFunction(), or the provided function was null.
-	CLAY_ERROR_TYPE_TEXT_MEASUREMENT_FUNCTION_NOT_PROVIDED Clay_ErrorType = iota
-	// Clay attempted to allocate its internal data structures but ran out of space.
-	// The arena passed to Clay_Initialize was created with a capacity smaller than that required by Clay_MinMemorySize().
-	CLAY_ERROR_TYPE_ARENA_CAPACITY_EXCEEDED
-	// Clay ran out of capacity in its internal array for storing elements. This limit can be increased with Clay_SetMaxElementCount().
-	CLAY_ERROR_TYPE_ELEMENTS_CAPACITY_EXCEEDED
-	// Clay ran out of capacity in its internal array for storing elements. This limit can be increased with Clay_SetMaxMeasureTextCacheWordCount().
-	CLAY_ERROR_TYPE_TEXT_MEASUREMENT_CAPACITY_EXCEEDED
-	// Two elements were declared with exactly the same ID within one layout.
-	CLAY_ERROR_TYPE_DUPLICATE_ID
-	// A floating element was declared using CLAY_ATTACH_TO_ELEMENT_ID and either an invalid .parentId was provided or no element with the provided .parentId was found.
-	CLAY_ERROR_TYPE_FLOATING_CONTAINER_PARENT_NOT_FOUND
-	// An element was declared that using CLAY_SIZING_PERCENT but the percentage value was over 1. Percentage values are expected to be in the 0-1 range.
-	CLAY_ERROR_TYPE_PERCENTAGE_OVER_1
-	// Clay encountered an internal error. It would be wonderful if you could report this so we can fix it!
-	CLAY_ERROR_TYPE_INTERNAL_ERROR
-	// Clay__OpenElement was called more times than Clay__CloseElement, so there were still remaining open elements when the layout ended.
-	CLAY_ERROR_TYPE_UNBALANCED_OPEN_CLOSE
-)
-
-type Clay_ErrorData struct {
-	// Represents the type of error clay encountered while computing layout.
-	// CLAY_ERROR_TYPE_TEXT_MEASUREMENT_FUNCTION_NOT_PROVIDED - A text measurement function wasn't provided using Clay_SetMeasureTextFunction(), or the provided function was null.
-	// CLAY_ERROR_TYPE_ARENA_CAPACITY_EXCEEDED - Clay attempted to allocate its internal data structures but ran out of space. The arena passed to Clay_Initialize was created with a capacity smaller than that required by Clay_MinMemorySize().
-	// CLAY_ERROR_TYPE_ELEMENTS_CAPACITY_EXCEEDED - Clay ran out of capacity in its internal array for storing elements. This limit can be increased with Clay_SetMaxElementCount().
-	// CLAY_ERROR_TYPE_TEXT_MEASUREMENT_CAPACITY_EXCEEDED - Clay ran out of capacity in its internal array for storing elements. This limit can be increased with Clay_SetMaxMeasureTextCacheWordCount().
-	// CLAY_ERROR_TYPE_DUPLICATE_ID - Two elements were declared with exactly the same ID within one layout.
-	// CLAY_ERROR_TYPE_FLOATING_CONTAINER_PARENT_NOT_FOUND - A floating element was declared using CLAY_ATTACH_TO_ELEMENT_ID and either an invalid .parentId was provided or no element with the provided .parentId was found.
-	// CLAY_ERROR_TYPE_PERCENTAGE_OVER_1 - An element was declared that using CLAY_SIZING_PERCENT but the percentage value was over 1. Percentage values are expected to be in the 0-1 range.
-	// CLAY_ERROR_TYPE_INTERNAL_ERROR - Clay encountered an internal error. It would be wonderful if you could report this so we can fix it!
-	ErrorType Clay_ErrorType
-
-	// A string containing human-readable error text that explains the error in more detail.
-	ErrorText Clay_String
-	// A transparent pointer passed through from when the error handler was first provided.
-	UserData interface{}
-}
-
 type Clay_Vector2 struct {
 	X float32
 	Y float32
-}
-
-type Clay_PointerDataInteractionState uint8
-
-const (
-	CLAY_POINTER_DATA_PRESSED_THIS_FRAME Clay_PointerDataInteractionState = iota
-	CLAY_POINTER_DATA_PRESSED
-	CLAY_POINTER_DATA_RELEASED_THIS_FRAME
-	CLAY_POINTER_DATA_RELEASED
-)
-
-// Information on the current state of pointer interactions this frame.
-type Clay_PointerData struct {
-	// The position of the mouse / touch / pointer relative to the root of the layout.
-	Position Clay_Vector2
-	// Represents the current state of interaction with clay this frame.
-	// CLAY_POINTER_DATA_PRESSED_THIS_FRAME - A left mouse click, or touch occurred this frame.
-	// CLAY_POINTER_DATA_PRESSED - The left mouse button click or touch happened at some point in the past, and is still currently held down this frame.
-	// CLAY_POINTER_DATA_RELEASED_THIS_FRAME - The left mouse button click or touch was released this frame.
-	// CLAY_POINTER_DATA_RELEASED - The left mouse button click or touch is not currently down / was released at some point in the past.
-	State Clay_PointerDataInteractionState
 }
 
 func Clay__Array_Allocate_Arena[T any](capacity int32, arena *Clay_Arena) Clay__Array[T] {
@@ -186,29 +51,6 @@ type Clay_LayoutElement struct {
 	ElementConfigs        Clay__Slice[Clay_ElementConfig]
 	Id                    uint32
 	FloatingChildrenCount uint16
-}
-
-type Clay_BooleanWarnings struct {
-	MaxElementsExceeded           bool
-	MaxRenderCommandsExceeded     bool
-	MaxTextMeasureCacheExceeded   bool
-	TextMeasurementFunctionNotSet bool
-}
-
-type Clay__Warning struct {
-	BaseMessage    Clay_String
-	DynamicMessage Clay_String
-}
-
-type Clay__WrappedTextLine struct {
-	Line       Clay_String
-	Dimensions Clay_Dimensions
-}
-type Clay__TextElementData struct {
-	Text                Clay_String
-	PreferredDimensions Clay_Dimensions
-	ElementIndex        int32
-	WrappedLines        Clay__Slice[Clay__WrappedTextLine]
 }
 
 type Clay_SharedElementConfig struct {
@@ -261,11 +103,6 @@ type Clay__LayoutElementTreeRoot struct {
 	PointerOffset      Clay_Vector2 // Only used when scroll containers are managed externally
 }
 
-type Clay__DebugElementData struct {
-	Collision bool
-	Collapsed bool
-}
-
 type Clay_LayoutElementHashMapItem struct { // todo get this struct into a single cache line
 	BoundingBox           Clay_BoundingBox
 	ElementId             Clay_ElementId
@@ -275,13 +112,6 @@ type Clay_LayoutElementHashMapItem struct { // todo get this struct into a singl
 	NextIndex             int32
 	Generation            uint32
 	DebugData             *Clay__DebugElementData
-}
-
-type Clay__MeasuredWord struct {
-	StartOffset int32
-	Length      int32
-	Width       float32
-	Next        int32
 }
 
 type Clay__ScrollContainerDataInternal struct {
@@ -297,37 +127,6 @@ type Clay__ScrollContainerDataInternal struct {
 	ElementId           uint32
 	OpenThisFrame       bool
 	PointerScrollActive bool
-}
-
-type Clay_Padding struct {
-	Left   uint16
-	Right  uint16
-	Top    uint16
-	Bottom uint16
-}
-type Clay_ChildAlignment struct {
-	TopLeft     float32
-	TopRight    float32
-	BottomLeft  float32
-	BottomRight float32
-}
-type Clay_LayoutDirection uint8
-
-const (
-	// (Default) Lays out child elements from left to right with increasing x.
-	CLAY_LEFT_TO_RIGHT Clay_LayoutDirection = iota
-	// Lays out child elements from top to bottom with increasing y.
-	CLAY_TOP_TO_BOTTOM
-)
-
-// Controls various settings that affect the size and position of an element, as well as the sizes and positions
-// of any child elements.
-type Clay_LayoutConfig struct {
-	Sizing          Clay_Sizing
-	Padding         Clay_Padding
-	ChildGap        uint16
-	ChildAlignment  Clay_ChildAlignment
-	LayoutDirection Clay_LayoutDirection
 }
 
 type Clay_Color struct {

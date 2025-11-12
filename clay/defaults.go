@@ -3,7 +3,10 @@ package clay
 // CLAY__DEFAULT_STRUCT = {0}
 // typeName typeName##_DEFAULT = CLAY__DEFAULT_STRUCT;                                                             \
 
-var CLAY__STRING_DEFAULT = Clay_String{Length: 0, Chars: ""}
+var CLAY__STRING_DEFAULT = Clay_String{Length: 0, Chars: make([]byte, 0)}
+
+var CLAY__SPACECHAR = Clay_String{Length: 1, Chars: []byte{' '}}
+
 var Clay_LayoutConfig_DEFAULT = Clay_LayoutConfig{}
 
 var Clay_LayoutElementHashMapItem_DEFAULT = Clay_LayoutElementHashMapItem{}

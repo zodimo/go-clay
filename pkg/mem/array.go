@@ -101,3 +101,7 @@ func MArray_RemoveSwapback[T any](array *MemArray[T], index int32) T {
 	(*array.InternalArray)[index] = (*array.InternalArray)[array.Length]
 	return removed
 }
+
+func MArray_GetAll[T any](array *MemArray[T]) []T {
+	return MArray_GetSlice(array, 0, array.Length)
+}

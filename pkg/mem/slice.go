@@ -43,11 +43,19 @@ func MSlice_GetValue[T any](slice *MemSlice[T], index int32) T {
 	return slice.InternalArray[index]
 }
 
+func MArray_GetSlice[T any](array *MemArray[T], start int32, end int32) []T {
+	slice, err := CreateSliceFromRange[T](array, start, end)
+	if err != nil {
+		panic(err)
+	}
+	return slice.InternalArray
+}
+
 // CreateSliceFromRange simulates the process of creating a non-owning slice
 // reference (e.g., ElementConfigs slice) from a larger ClayArray.
 // It performs bounds checking and returns the non-owning ClaySlice.
 func CreateSliceFromRange[T any](baseArray *MemArray[T], startOffset int32, segmentLength int32) (MemSlice[T], error) {
-	if startOffset < 0 || startOffset+segmentLength > baseArray.Length {
+	if startOffset < 0 || startOffset+segmentLength > baseArray.Capacity {
 		return MemSlice[T]{}, errors.New("slice range exceeds the bounds of the base array")
 	}
 

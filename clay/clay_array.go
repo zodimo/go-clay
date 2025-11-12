@@ -1,62 +1,44 @@
 package clay
 
-type Clay__Array[T any] struct {
-	Capacity      int32
-	Length        int32
-	InternalArray []T
-}
+import "github.com/zodimo/clay-go/pkg/mem"
 
-func NewClay__Array[T any](capacity int32) Clay__Array[T] {
-	return Clay__Array[T]{
-		Capacity:      capacity,
-		Length:        0,
-		InternalArray: make([]T, capacity),
-	}
-}
+type Clay__Array[T any] = mem.MemArray[T]
 
-func Clay__Array_RangeCheck(index int32, length int32) bool {
-	return index < length && index >= 0
-}
+// type Clay__Array[T any] struct {
+// 	Capacity      int32
+// 	Length        int32
+// 	InternalArray []T
+// }
+
+// func NewClay__Array[T any](capacity int32) Clay__Array[T] {
+// 	return Clay__Array[T]{
+// 		Capacity:      capacity,
+// 		Length:        0,
+// 		InternalArray: make([]T, capacity),
+// 	}
+// }
+
+// func Clay__Array_RangeCheck(index int32, length int32) bool {
+// 	return index < length && index >= 0
+// }
 
 func Clay__Array_Get[T any](array *Clay__Array[T], index int32) *T {
-	if !Clay__Array_RangeCheck(index, int32(len(array.InternalArray))) {
-		return nil
-	}
-	return &array.InternalArray[index]
+	return mem.MArray_Get(array, index)
 }
 func Clay__Array_GetValue[T any](array *Clay__Array[T], index int32) T {
-	zero := new(T)
-	if !Clay__Array_RangeCheck(index, int32(len(array.InternalArray))) {
-		return *zero
-	}
-	return array.InternalArray[index]
+	return mem.MArray_GetValue(array, index)
 }
 
 func Clay__Array_Add[T any](array *Clay__Array[T], item T) *T {
-	if array.Length == array.Capacity-1 {
-		return nil
-	}
-	array.InternalArray[array.Length] = item
-	array.Length++
-	return &array.InternalArray[array.Length-1]
+	return mem.MArray_Add(array, item)
 }
 
 func Clay__Array_Set[T any](array *Clay__Array[T], index int32, item T) {
-	if index < 0 || index >= int32(len(array.InternalArray)) {
-		return
-	}
-	array.InternalArray[index] = item
+	mem.MArray_Set(array, index, item)
 }
 
 func Clay__Array_RemoveSwapback[T any](array *Clay__Array[T], index int32) T {
-	zero := new(T)
-	if !Clay__Array_RangeCheck(index, array.Length) {
-		return *zero
-	}
-	array.Length--
-	removed := array.InternalArray[index]
-	array.InternalArray[index] = array.InternalArray[array.Length]
-	return removed
+	return mem.MArray_RemoveSwapback(array, index)
 }
 
 // typeName arrayName##_RemoveSwapback(arrayName *array, int32_t index) {                                          \

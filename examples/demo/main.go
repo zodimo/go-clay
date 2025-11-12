@@ -93,6 +93,9 @@ func run(w *app.Window) error {
 					BackgroundColor: clay.Clay_Color{R: 0.9, G: 0.2, B: 0.2, A: 1},
 				},
 			)
+
+			// how to let the error show an element is not closed?
+			clay.Clay__CloseElement()
 			// main := clay.CLAY(clay.ElementDeclaration{
 			// 	// ID: clay.CLAY_ID("main"),
 			// 	Layout: clay.LayoutConfig{

@@ -32,4 +32,40 @@ func CLAY_SID(label Clay_String) Clay_ElementId {
 	return Clay__HashString(label, 0)
 }
 
-func CLAY_CONTAINER() {}
+func CLAY_PADDING_ALL(padding uint16) Clay_Padding {
+	return Clay_Padding{
+		Left:   padding,
+		Right:  padding,
+		Top:    padding,
+		Bottom: padding,
+	}
+}
+
+// func CLAY_BORDER_OUTSIDE(widthValue uint16) Clay_BorderWidth {
+// 	return Clay_BorderWidth{
+// 		Left:            widthValue,
+// 		Right:           widthValue,
+// 		Top:             widthValue,
+// 		Bottom:          widthValue,
+// 		BetweenChildren: 0,
+// 	}
+// }
+
+// #define CLAY_BORDER_ALL(widthValue) {widthValue, widthValue, widthValue, widthValue, widthValue}
+
+func CLAY_CORNER_RADIUS(radius float32) Clay_CornerRadius {
+	return Clay_CornerRadius{
+		TopLeft:     radius,
+		TopRight:    radius,
+		BottomLeft:  radius,
+		BottomRight: radius,
+	}
+}
+
+// #define CLAY_SIZING_FIT(...) (CLAY__INIT(Clay_SizingAxis) { .size = { .minMax = { __VA_ARGS__ } }, .type = CLAY__SIZING_TYPE_FIT })
+
+// #define CLAY_SIZING_GROW(...) (CLAY__INIT(Clay_SizingAxis) { .size = { .minMax = { __VA_ARGS__ } }, .type = CLAY__SIZING_TYPE_GROW })
+
+// #define CLAY_SIZING_FIXED(fixedSize) (CLAY__INIT(Clay_SizingAxis) { .size = { .minMax = { fixedSize, fixedSize } }, .type = CLAY__SIZING_TYPE_FIXED })
+
+// #define CLAY_SIZING_PERCENT(percentOfParent) (CLAY__INIT(Clay_SizingAxis) { .size = { .percent = (percentOfParent) }, .type = CLAY__SIZING_TYPE_PERCENT })

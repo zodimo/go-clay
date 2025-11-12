@@ -69,12 +69,6 @@ type Clay_ElementConfig struct {
 	Config Clay_ElementConfigUnion
 }
 
-type Clay_LayoutElementTreeNode struct {
-	LayoutElement   Clay_LayoutElement
-	Position        Clay_Vector2
-	NextChildOffset Clay_Vector2
-}
-
 type Clay_LayoutElementHashMapItem struct { // todo get this struct into a single cache line
 	BoundingBox           Clay_BoundingBox
 	ElementId             Clay_ElementId

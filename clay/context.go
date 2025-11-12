@@ -56,7 +56,7 @@ type Clay_Context struct {
 	// Misc Data Structures
 	LayoutElementIdStrings             Clay__Array[Clay_String]
 	WrappedTextLines                   Clay__Array[Clay__WrappedTextLine]
-	LayoutElementTreeNodeArray1        Clay__Array[Clay_LayoutElementTreeNode]
+	LayoutElementTreeNodeArray1        Clay__Array[Clay__LayoutElementTreeNode]
 	LayoutElementTreeRoots             Clay__Array[Clay__LayoutElementTreeRoot]
 	LayoutElementsHashMapInternal      Clay__Array[Clay_LayoutElementHashMapItem]
 	LayoutElementsHashMap              Clay__Array[int32]

@@ -10,8 +10,8 @@ import (
 	"gioui.org/unit"
 
 	"github.com/zodimo/clay-go/clay"
+	"github.com/zodimo/clay-go/pkg/mem"
 	"github.com/zodimo/clay-go/renderers/gioui"
-	"github.com/zodimo/go-arena-memory/mem"
 )
 
 func main() {
@@ -37,7 +37,7 @@ var (
 
 func run(w *app.Window) error {
 	var ops op.Ops
-	memory := make([]byte, 10*1024*1024)
+	memory := make([]byte, 100*1024*1024)
 	arena, err := mem.NewArena(memory)
 	if err != nil {
 		return err

@@ -1,6 +1,9 @@
 package mem
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // ClaySlice represents the non-owning reference structure (arrayName##Slice)
 // used throughout Clay to point to a sub-range of any backing array.
@@ -21,24 +24,40 @@ func NewMemSlice[T any](length int32) MemSlice[T] {
 	}
 }
 
+func NewMemSliceWithData[T any](array []T) MemSlice[T] {
+	return MemSlice[T]{
+		Length:        int32(len(array)),
+		InternalArray: array,
+	}
+}
+
 func MSlice_Set[T any](slice *MemSlice[T], index int32, item T) {
 	if !rangeCheck(index, slice.Length) {
-		return
+		message := fmt.Sprintf("MemSlice.MSlice_Set index: %d, slice.Length: %d\n", index, slice.Length)
+		// fmt.Println(message)
+		panic(message)
+		// return
 	}
 	slice.InternalArray[index] = item
 }
 
 func MSlice_Get[T any](slice *MemSlice[T], index int32) *T {
 	if !rangeCheck(index, slice.Length) {
-		return nil
+		message := fmt.Sprintf("MemSlice.MSlice_Get index: %d, slice.Length: %d\n", index, slice.Length)
+		// fmt.Println(message)
+		panic(message)
+		// return nil
 	}
 	return &slice.InternalArray[index]
 }
 
 func MSlice_GetValue[T any](slice *MemSlice[T], index int32) T {
 	if !rangeCheck(index, slice.Length) {
-		zero := new(T)
-		return *zero
+		message := fmt.Sprintf("MemSlice.MSlice_GetValue index: %d, slice.Length: %d\n", index, slice.Length)
+		// fmt.Println(message)
+		panic(message)
+		// zero := new(T)
+		// return *zero
 	}
 	return slice.InternalArray[index]
 }
@@ -68,4 +87,15 @@ func CreateSliceFromRange[T any](baseArray *MemArray[T], startOffset int32, segm
 		Length:        segmentLength,
 		InternalArray: segmentView,
 	}, nil
+}
+
+func (slice MemSlice[T]) Get(index int32) T {
+	if !rangeCheck(index, slice.Length) {
+		message := fmt.Sprintf("MemSlice.Get index: %d, slice.Length: %d\n", index, slice.Length)
+		// fmt.Println(message)
+		panic(message)
+		// zero := new(T)
+		// return *zero
+	}
+	return slice.InternalArray[index]
 }

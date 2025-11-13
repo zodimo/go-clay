@@ -9,9 +9,38 @@ func CLAY_TEXT(text string, options ...TextOption) {
 	Clay__OpenTextElement(CLAY_STRING(text), textConfig)
 }
 
-func CLAY(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration) {
-	Clay__OpenElementWithId(elementID)
-	Clay__ConfigureOpenElement(elementDeclaration)
+type CLAY_CONTAINER_FUNC func(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration, content ...CLAY_CONTAINER_FUNC)
+
+type ClayContainer interface {
+	Run()
+}
+
+var _ ClayContainer = (*claContainer)(nil)
+
+type claContainer struct {
+	wrapper func()
+}
+
+func (c *claContainer) Run() {
+	c.wrapper()
+}
+
+func CLAY_ROOT(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) {
+	CLAY(elementID, elementDeclaration, content...).Run()
+}
+
+func CLAY(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) ClayContainer {
+	return &claContainer{
+		wrapper: func() {
+			Clay__OpenElementWithId(elementID)
+			Clay__ConfigureOpenElement(elementDeclaration)
+			for _, content := range content {
+				content.Run()
+				Clay__CloseElement()
+			}
+			Clay__CloseElement()
+		},
+	}
 }
 
 func CLAY_STRING(label string) Clay_String {

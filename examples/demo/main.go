@@ -89,7 +89,7 @@ func run(w *app.Window) error {
 							Width:  clay.CLAY_SIZING_FIXED(400),
 							Height: clay.CLAY_SIZING_FIXED(300),
 						},
-						Padding: clay.CLAY_PADDING_ALL(16),
+						Padding: clay.CLAY_PADDING_ALL(40),
 					},
 					BackgroundColor: clay.Clay_Color{R: 0.9, G: 0.2, B: 0.2, A: 1},
 					CornerRadius:    clay.CLAY_CORNER_RADIUS(40),
@@ -105,7 +105,7 @@ func run(w *app.Window) error {
 							Padding: clay.CLAY_PADDING_ALL(16),
 						},
 						BackgroundColor: clay.Clay_Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
-						CornerRadius:    clay.CLAY_CORNER_RADIUS(40),
+						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
 				),
 			)

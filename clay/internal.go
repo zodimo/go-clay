@@ -99,20 +99,22 @@ func Clay__CloseElement() {
 	if layoutConfig.LayoutDirection == CLAY_LEFT_TO_RIGHT {
 		openLayoutElement.Dimensions.Width = leftRightPadding
 		openLayoutElement.MinDimensions.Width = leftRightPadding
-		for i := uint16(0); i < openLayoutElement.ChildrenOrTextContent.Children.Length; i++ {
-			childIndex := Clay__Array_GetValue(&currentContext.LayoutElementChildrenBuffer, currentContext.LayoutElementChildrenBuffer.Length()-int32(openLayoutElement.ChildrenOrTextContent.Children.Length)+int32(i))
-			child := Clay__Array_Get(&currentContext.LayoutElements, childIndex)
-			openLayoutElement.Dimensions.Width += child.Dimensions.Width
-			openLayoutElement.Dimensions.Height = CLAY__MAX(openLayoutElement.Dimensions.Height, child.Dimensions.Height+topBottomPadding)
+		if openLayoutElement.ChildrenOrTextContent.Children.Length > 0 && int32(openLayoutElement.ChildrenOrTextContent.Children.Length) <= currentContext.LayoutElementChildrenBuffer.Length() {
+			for i := uint16(0); i < openLayoutElement.ChildrenOrTextContent.Children.Length; i++ {
+				childIndex := Clay__Array_GetValue(&currentContext.LayoutElementChildrenBuffer, currentContext.LayoutElementChildrenBuffer.Length()-int32(openLayoutElement.ChildrenOrTextContent.Children.Length)+int32(i))
+				child := Clay__Array_Get(&currentContext.LayoutElements, childIndex)
+				openLayoutElement.Dimensions.Width += child.Dimensions.Width
+				openLayoutElement.Dimensions.Height = CLAY__MAX(openLayoutElement.Dimensions.Height, child.Dimensions.Height+topBottomPadding)
 
-			// Minimum size of child elements doesn't matter to clip containers as they can shrink and hide their contents
-			if !elementHasClipHorizontal {
-				openLayoutElement.MinDimensions.Width += child.MinDimensions.Width
+				// Minimum size of child elements doesn't matter to clip containers as they can shrink and hide their contents
+				if !elementHasClipHorizontal {
+					openLayoutElement.MinDimensions.Width += child.MinDimensions.Width
+				}
+				if !elementHasClipVertical {
+					openLayoutElement.MinDimensions.Height = CLAY__MAX(openLayoutElement.MinDimensions.Height, child.MinDimensions.Height+topBottomPadding)
+				}
+				Clay__Array_Add(&currentContext.LayoutElementChildren, childIndex)
 			}
-			if !elementHasClipVertical {
-				openLayoutElement.MinDimensions.Height = CLAY__MAX(openLayoutElement.MinDimensions.Height, child.MinDimensions.Height+topBottomPadding)
-			}
-			Clay__Array_Add(&currentContext.LayoutElementChildren, childIndex)
 		}
 
 		childGap := float32(CLAY__MAX(float32(openLayoutElement.ChildrenOrTextContent.Children.Length-1), 0) * float32(layoutConfig.ChildGap))
@@ -124,18 +126,20 @@ func Clay__CloseElement() {
 	} else if layoutConfig.LayoutDirection == CLAY_TOP_TO_BOTTOM {
 		openLayoutElement.Dimensions.Height = topBottomPadding
 		openLayoutElement.MinDimensions.Height = topBottomPadding
-		for i := uint16(0); i < openLayoutElement.ChildrenOrTextContent.Children.Length; i++ {
-			childIndex := Clay__Array_GetValue(&currentContext.LayoutElementChildrenBuffer, currentContext.LayoutElementChildrenBuffer.Length()-int32(openLayoutElement.ChildrenOrTextContent.Children.Length)+int32(i))
-			child := Clay__Array_Get(&currentContext.LayoutElements, childIndex)
-			openLayoutElement.Dimensions.Height += child.Dimensions.Height
-			openLayoutElement.Dimensions.Width = CLAY__MAX(openLayoutElement.Dimensions.Width, child.Dimensions.Width+leftRightPadding)
-			if !elementHasClipVertical {
-				openLayoutElement.MinDimensions.Height += child.MinDimensions.Height
+		if openLayoutElement.ChildrenOrTextContent.Children.Length > 0 && int32(openLayoutElement.ChildrenOrTextContent.Children.Length) <= currentContext.LayoutElementChildrenBuffer.Length() {
+			for i := uint16(0); i < openLayoutElement.ChildrenOrTextContent.Children.Length; i++ {
+				childIndex := Clay__Array_GetValue(&currentContext.LayoutElementChildrenBuffer, currentContext.LayoutElementChildrenBuffer.Length()-int32(openLayoutElement.ChildrenOrTextContent.Children.Length)+int32(i))
+				child := Clay__Array_Get(&currentContext.LayoutElements, childIndex)
+				openLayoutElement.Dimensions.Height += child.Dimensions.Height
+				openLayoutElement.Dimensions.Width = CLAY__MAX(openLayoutElement.Dimensions.Width, child.Dimensions.Width+leftRightPadding)
+				if !elementHasClipVertical {
+					openLayoutElement.MinDimensions.Height += child.MinDimensions.Height
+				}
+				if !elementHasClipHorizontal {
+					openLayoutElement.MinDimensions.Width = CLAY__MAX(openLayoutElement.MinDimensions.Width, child.MinDimensions.Width+leftRightPadding)
+				}
+				Clay__Array_Add(&currentContext.LayoutElementChildren, childIndex)
 			}
-			if !elementHasClipHorizontal {
-				openLayoutElement.MinDimensions.Width = CLAY__MAX(openLayoutElement.MinDimensions.Width, child.MinDimensions.Width+leftRightPadding)
-			}
-			Clay__Array_Add(&currentContext.LayoutElementChildren, childIndex)
 		}
 
 		childGap := float32(CLAY__MAX(float32(openLayoutElement.ChildrenOrTextContent.Children.Length-1), 0) * float32(layoutConfig.ChildGap))
@@ -146,7 +150,20 @@ func Clay__CloseElement() {
 		}
 	}
 
-	Clay__Array_Shrink(&currentContext.LayoutElementChildrenBuffer, int32(openLayoutElement.ChildrenOrTextContent.Children.Length))
+	// Resize the Elements slice to match the Length field after adding children
+	if openLayoutElement.ChildrenOrTextContent.Children.Length > 0 {
+		if int32(openLayoutElement.ChildrenOrTextContent.Children.Length) <= currentContext.LayoutElementChildrenBuffer.Length() {
+			openLayoutElement.ChildrenOrTextContent.Children.Elements = openLayoutElement.ChildrenOrTextContent.Children.Elements[:openLayoutElement.ChildrenOrTextContent.Children.Length]
+			Clay__Array_Shrink(&currentContext.LayoutElementChildrenBuffer, int32(openLayoutElement.ChildrenOrTextContent.Children.Length))
+		} else {
+			// If buffer doesn't have enough elements, set Elements to an empty slice
+			openLayoutElement.ChildrenOrTextContent.Children.Elements = []int32{}
+			openLayoutElement.ChildrenOrTextContent.Children.Length = 0
+		}
+	} else {
+		// If there are no children, set Elements to an empty slice
+		openLayoutElement.ChildrenOrTextContent.Children.Elements = []int32{}
+	}
 
 	// Clamp element min and max width to the values configured in the layout
 	if layoutConfig.Sizing.Width.Type != CLAY__SIZING_TYPE_PERCENT {
@@ -178,8 +195,10 @@ func Clay__CloseElement() {
 	// Close the currently open element
 	closingElementIndex := Clay__Array_RemoveSwapback(&currentContext.OpenLayoutElementStack, currentContext.OpenLayoutElementStack.Length()-1)
 
-	// Get the currently open parent
-	openLayoutElement = Clay__GetOpenLayoutElement()
+	// Get the currently open parent (only if stack is not empty)
+	if currentContext.OpenLayoutElementStack.Length() > 0 {
+		openLayoutElement = Clay__GetOpenLayoutElement()
+	}
 
 	if currentContext.OpenLayoutElementStack.Length() > 1 {
 		if elementIsFloating {
@@ -786,8 +805,6 @@ func Clay__SizeContainersAlongAxis(xAxis bool) {
 			parentChildGap := parentStyleConfig.ChildGap
 
 			for childOffset := int32(0); childOffset < int32(parent.ChildrenOrTextContent.Children.Length); childOffset++ {
-				fmt.Printf("Clay__SizeContainersAlongAxis childOffset: %d\n", childOffset)
-				fmt.Printf("Clay__SizeContainersAlongAxis parent.ChildrenOrTextContent.Children.Length: %d\n", parent.ChildrenOrTextContent.Children.Length)
 				childElementIndex := parent.ChildrenOrTextContent.Children.Elements[childOffset]
 				childElement := Clay__Array_Get(&currentContext.LayoutElements, childElementIndex)
 				var childSizing Clay_SizingAxis

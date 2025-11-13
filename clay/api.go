@@ -40,7 +40,6 @@ func CLAY(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration, 
 			Clay__ConfigureOpenElement(elementDeclaration)
 			for _, content := range content {
 				content.Run()
-				Clay__CloseElement()
 			}
 			Clay__CloseElement()
 		},
@@ -54,7 +53,6 @@ func CLAY_AUTO_ID(elementDeclaration Clay_ElementDeclaration, content ...ClayCon
 			Clay__ConfigureOpenElement(elementDeclaration)
 			for _, content := range content {
 				content.Run()
-				Clay__CloseElement()
 			}
 			Clay__CloseElement()
 		},

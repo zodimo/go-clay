@@ -2282,12 +2282,13 @@ func Clay__InitializeEphemeralMemory(context *Clay_Context) {
 	context.TextElementData = Clay__Array_Allocate_Arena[Clay__TextElementData](maxElementCount, arena)
 	context.AspectRatioElementIndexes = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
 	context.RenderCommands = Clay__Array_Allocate_Arena[Clay_RenderCommand](maxElementCount, arena)
-	context.TreeNodeVisited = Clay__Array_Allocate_Arena[bool](maxElementCount, arena)
+	context.TreeNodeVisited = Clay__Array_Allocate_Arena[bool](maxElementCount, arena, mem.MemArrayWithInitialLength[bool](maxElementCount))
 	// context.TreeNodeVisited.Length() = context.TreeNodeVisited.Capacity // This array is accessed directly rather than behaving as a list
 	context.OpenClipElementStack = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
 	context.ReusableElementIndexBuffer = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
 	context.LayoutElementClipElementIds = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
 	context.DynamicStringData = Clay__Array_Allocate_Arena[byte](maxElementCount, arena)
+
 }
 
 func Clay__Context_Allocate_Arena(arena *Clay_Arena) *Clay_Context {

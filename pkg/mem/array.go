@@ -146,10 +146,11 @@ func (c *MemArray[T]) InternalArray() []T {
 }
 
 type MemArrayOptions[T any] struct {
-	Arena        *Arena
-	IsHashmap    bool
-	ZeroValue    T
-	ZeroValuePtr *T
+	Arena         *Arena
+	IsHashmap     bool
+	ZeroValue     T
+	ZeroValuePtr  *T
+	InitialLength int32
 }
 type MemArrayOption[T any] func(*MemArrayOptions[T])
 
@@ -176,13 +177,19 @@ func MemArrayWithZeroValuePtr[T any](value *T) MemArrayOption[T] {
 		o.ZeroValuePtr = value
 	}
 }
+func MemArrayWithInitialLength[T any](length int32) MemArrayOption[T] {
+	return func(o *MemArrayOptions[T]) {
+		o.InitialLength = length
+	}
+}
 func defaultMemArrayOptions[T any](size int) MemArrayOptions[T] {
 	zero := new(T)
 	return MemArrayOptions[T]{
-		Arena:        NewArenaWithSizeUnsafe(size),
-		IsHashmap:    false,
-		ZeroValue:    *zero,
-		ZeroValuePtr: zero,
+		Arena:         NewArenaWithSizeUnsafe(size),
+		IsHashmap:     false,
+		ZeroValue:     *zero,
+		ZeroValuePtr:  zero,
+		InitialLength: 0,
 	}
 }
 
@@ -211,7 +218,7 @@ func NewMemArray[T any](capacity int32, options ...MemArrayOption[T]) MemArray[T
 		isHashmap:     opts.IsHashmap,
 		ZeroValue:     opts.ZeroValue,
 		ZeroValuePtr:  opts.ZeroValuePtr,
-		internalArray: make([]T, 0, capacity),
+		internalArray: make([]T, opts.InitialLength, capacity),
 	}
 	if opts.IsHashmap {
 		m.initHashMap()

@@ -208,11 +208,12 @@ func Clay_Initialize(arena Clay_Arena, layoutDimensions Clay_Dimensions, errorHa
 		LayoutDimensions:             layoutDimensions,
 		InternalArena:                arena,
 	}
-	if oldContext != nil {
-		if errorHandler.ErrorHandlerFunction != nil {
-			newContext.ErrorHandler = errorHandler
-		}
 
+	if errorHandler.ErrorHandlerFunction != nil {
+		newContext.ErrorHandler = errorHandler
+	}
+
+	if oldContext != nil {
 		newContext.MaxElementCount = oldContext.MaxElementCount
 		newContext.MaxMeasureTextCacheWordCount = oldContext.MaxMeasureTextCacheWordCount
 
@@ -280,6 +281,16 @@ func Clay_EndLayout() []Clay_RenderCommand {
 
 	currentContext := Clay_GetCurrentContext()
 	Clay__CloseElement()
+
+	if currentContext.OpenLayoutElementStack.Length > 1 {
+		currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
+			ErrorType: CLAY_ERROR_TYPE_UNBALANCED_OPEN_CLOSE,
+			ErrorText: CLAY_STRING("There were still open layout elements when EndLayout was called. This results from an unequal number of calls to Clay__OpenElement and Clay__CloseElement."),
+			UserData:  currentContext.ErrorHandler.UserData,
+		})
+		return []Clay_RenderCommand{}
+	}
+
 	elementsExceededBeforeDebugView := currentContext.BooleanWarnings.MaxElementsExceeded
 	if currentContext.DebugModeEnabled && !elementsExceededBeforeDebugView {
 		currentContext.WarningsEnabled = false
@@ -314,13 +325,7 @@ func Clay_EndLayout() []Clay_RenderCommand {
 			CommandType: CLAY_RENDER_COMMAND_TYPE_TEXT,
 		})
 	}
-	if currentContext.OpenLayoutElementStack.Length > 1 {
-		currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
-			ErrorType: CLAY_ERROR_TYPE_UNBALANCED_OPEN_CLOSE,
-			ErrorText: CLAY_STRING("There were still open layout elements when EndLayout was called. This results from an unequal number of calls to Clay__OpenElement and Clay__CloseElement."),
-			UserData:  currentContext.ErrorHandler.UserData,
-		})
-	}
+
 	Clay__CalculateFinalLayout()
 	return mem.MArray_GetAll(&currentContext.RenderCommands)
 

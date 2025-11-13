@@ -1,5 +1,10 @@
 package clay
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 // Used by renderers to determine specific handling for each render command.
 type Clay_RenderCommandType uint8
 
@@ -13,6 +18,19 @@ const (
 	CLAY_RENDER_COMMAND_TYPE_SCISSOR_END
 	CLAY_RENDER_COMMAND_TYPE_CUSTOM
 )
+
+func (t Clay_RenderCommandType) String() string {
+	return []string{
+		"NONE",
+		"RECTANGLE",
+		"BORDER",
+		"TEXT",
+		"IMAGE",
+		"SCISSOR_START",
+		"SCISSOR_END",
+		"CUSTOM",
+	}[t]
+}
 
 type Clay_RenderCommand struct {
 	// A rectangular box that fully encloses this UI element, with the position relative to the root of the layout.
@@ -45,6 +63,14 @@ type Clay_BoundingBox struct {
 	Height float32
 }
 
+func (b *Clay_BoundingBox) String() string {
+	json, err := json.MarshalIndent(b, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("Error marshalling bounding box: %v", err)
+	}
+	return string(json)
+}
+
 type Clay_RenderData struct {
 	// Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_RECTANGLE
 	Rectangle Clay_RectangleRenderData
@@ -60,6 +86,29 @@ type Clay_RenderData struct {
 	Clip Clay_ClipRenderData
 }
 
+func (d *Clay_RenderData) String(commandType Clay_RenderCommandType) string {
+	switch commandType {
+	case CLAY_RENDER_COMMAND_TYPE_NONE:
+		return "NONE"
+	case CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
+		return d.Rectangle.String()
+	case CLAY_RENDER_COMMAND_TYPE_TEXT:
+		return d.Text.String()
+	case CLAY_RENDER_COMMAND_TYPE_IMAGE:
+		return d.Image.String()
+	case CLAY_RENDER_COMMAND_TYPE_CUSTOM:
+		return d.Custom.String()
+	case CLAY_RENDER_COMMAND_TYPE_BORDER:
+		return d.Border.String()
+	case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
+		return d.Clip.String()
+	case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END:
+		return d.Clip.String()
+	default:
+		return fmt.Sprintf("Unknown command type: %d", commandType)
+	}
+}
+
 // Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_RECTANGLE
 type Clay_RectangleRenderData struct {
 	// The solid background color to fill this rectangle with. Conventionally represented as 0-255 for each channel, but interpretation is up to the renderer.
@@ -67,6 +116,14 @@ type Clay_RectangleRenderData struct {
 	// Controls the "radius", or corner rounding of elements, including rectangles, borders and images.
 	// The rounding is determined by drawing a circle inset into the element corner by (radius, radius) pixels.
 	CornerRadius Clay_CornerRadius
+}
+
+func (d *Clay_RectangleRenderData) String() string {
+	json, err := json.MarshalIndent(d, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("Error marshalling rectangle render data: %v", err)
+	}
+	return string(json)
 }
 
 // Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_TEXT
@@ -85,6 +142,14 @@ type Clay_TextRenderData struct {
 	LineHeight uint16
 }
 
+func (d *Clay_TextRenderData) String() string {
+	json, err := json.MarshalIndent(d, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("Error marshalling text render data: %v", err)
+	}
+	return string(json)
+}
+
 // Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_IMAGE
 type Clay_ImageRenderData struct {
 	// The tint color for this image. Note that the default value is 0,0,0,0 and should likely be interpreted
@@ -96,6 +161,14 @@ type Clay_ImageRenderData struct {
 	CornerRadius Clay_CornerRadius
 	// A pointer transparently passed through from the original element definition, typically used to represent image data.
 	ImageData interface{}
+}
+
+func (d *Clay_ImageRenderData) String() string {
+	json, err := json.MarshalIndent(d, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("Error marshalling image render data: %v", err)
+	}
+	return string(json)
 }
 
 // Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_CUSTOM
@@ -110,6 +183,14 @@ type Clay_CustomRenderData struct {
 	CustomData interface{}
 }
 
+func (d *Clay_CustomRenderData) String() string {
+	json, err := json.MarshalIndent(d, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("Error marshalling custom render data: %v", err)
+	}
+	return string(json)
+}
+
 // Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_BORDER
 type Clay_BorderRenderData struct {
 	// Controls a shared color for all this element's borders.
@@ -122,8 +203,24 @@ type Clay_BorderRenderData struct {
 	Width Clay_BorderWidth
 }
 
+func (d *Clay_BorderRenderData) String() string {
+	json, err := json.MarshalIndent(d, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("Error marshalling border render data: %v", err)
+	}
+	return string(json)
+}
+
 // Render command data when commandType == CLAY_RENDER_COMMAND_TYPE_SCISSOR_START || commandType == CLAY_RENDER_COMMAND_TYPE_SCISSOR_END
 type Clay_ClipRenderData struct {
 	Horizontal bool
 	Vertical   bool
+}
+
+func (d *Clay_ClipRenderData) String() string {
+	json, err := json.MarshalIndent(d, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("Error marshalling clip render data: %v", err)
+	}
+	return string(json)
 }

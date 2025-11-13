@@ -266,6 +266,16 @@ func Clay_BeginLayout() {
 
 }
 
+func Clay_SetDebugModeEnabled(enabled bool) {
+	currentContext := Clay_GetCurrentContext()
+	currentContext.DebugModeEnabled = enabled
+}
+
+func Clay_IsDebugModeEnabled() bool {
+	currentContext := Clay_GetCurrentContext()
+	return currentContext.DebugModeEnabled
+}
+
 func Clay_EndLayout() []Clay_RenderCommand {
 
 	currentContext := Clay_GetCurrentContext()

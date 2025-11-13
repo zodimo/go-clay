@@ -86,7 +86,12 @@ func Clay__CloseElement() {
 	// Attach children to the current open element
 
 	//attach to the unallocated slice at the end of the array from length to capacity
-	openLayoutElement.ChildrenOrTextContent.Children.Elements = mem.MArray_GetSlice(&currentContext.LayoutElementChildren, currentContext.LayoutElementChildren.Length, currentContext.LayoutElementChildren.Capacity) //[currentContext.LayoutElementChildren.Length]
+	openLayoutElement.ChildrenOrTextContent.Children.Elements = mem.MArray_GetSlice(
+		&currentContext.LayoutElementChildren,
+		0,
+		currentContext.LayoutElementChildren.Length,
+	)
+
 	if layoutConfig.LayoutDirection == CLAY_LEFT_TO_RIGHT {
 		openLayoutElement.Dimensions.Width = leftRightPadding
 		openLayoutElement.MinDimensions.Width = leftRightPadding

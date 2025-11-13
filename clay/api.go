@@ -29,10 +29,28 @@ func CLAY_ROOT(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclarat
 	CLAY(elementID, elementDeclaration, content...).Run()
 }
 
+func CLAY_ROOT_AUTO_ID(elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) {
+	CLAY_AUTO_ID(elementDeclaration, content...).Run()
+}
+
 func CLAY(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) ClayContainer {
 	return &claContainer{
 		wrapper: func() {
 			Clay__OpenElementWithId(elementID)
+			Clay__ConfigureOpenElement(elementDeclaration)
+			for _, content := range content {
+				content.Run()
+				Clay__CloseElement()
+			}
+			Clay__CloseElement()
+		},
+	}
+}
+
+func CLAY_AUTO_ID(elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) ClayContainer {
+	return &claContainer{
+		wrapper: func() {
+			Clay__OpenElement()
 			Clay__ConfigureOpenElement(elementDeclaration)
 			for _, content := range content {
 				content.Run()

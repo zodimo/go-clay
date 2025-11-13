@@ -1839,7 +1839,33 @@ func Clay__AddRenderCommand(renderCommand Clay_RenderCommand) {
 		}
 	}
 }
+func Clay__GenerateIdForAnonymousElement(openLayoutElement *Clay_LayoutElement) Clay_ElementId {
+	currentContext := Clay_GetCurrentContext()
+	parentElement := Clay__Array_Get(&currentContext.LayoutElements, Clay__Array_GetValue(&currentContext.OpenLayoutElementStack, currentContext.OpenLayoutElementStack.Length-2))
+	offset := uint32(parentElement.ChildrenOrTextContent.Children.Length + parentElement.FloatingChildrenCount)
+	elementId := Clay__HashNumber(offset, parentElement.Id)
+	openLayoutElement.Id = elementId.Id
+	Clay__AddHashMapItem(elementId, openLayoutElement)
+	Clay__Array_Add(&currentContext.LayoutElementIdStrings, elementId.StringId)
+	return elementId
+}
 
+func Clay__OpenElement() {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.LayoutElements.Length == currentContext.LayoutElements.Capacity-1 || currentContext.BooleanWarnings.MaxElementsExceeded {
+		currentContext.BooleanWarnings.MaxElementsExceeded = true
+		return
+	}
+	layoutElement := Clay_LayoutElement{}
+	openLayoutElement := Clay__Array_Add(&currentContext.LayoutElements, layoutElement)
+	Clay__Array_Add(&currentContext.OpenLayoutElementStack, currentContext.LayoutElements.Length-1)
+	Clay__GenerateIdForAnonymousElement(openLayoutElement)
+	if currentContext.OpenClipElementStack.Length > 0 {
+		Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length-1, Clay__Array_GetValue(&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length-1))
+	} else {
+		Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length-1, 0)
+	}
+}
 func Clay__OpenElementWithId(elementId Clay_ElementId) {
 	currentContext := Clay_GetCurrentContext()
 	if currentContext.LayoutElements.Length == currentContext.LayoutElements.Capacity-1 || currentContext.BooleanWarnings.MaxElementsExceeded {

@@ -124,16 +124,24 @@ void Clay__RenderDebugView(void) {
             }
         }
         CLAY_AUTO_ID({
-.layout = {
-.sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_FIXED(1)} },
-.backgroundColor = CLAY__DEBUGVIEW_COLOR_3 } ) {}
+            .layout = {
+                .sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_FIXED(1)} 
+            },
+            .backgroundColor = CLAY__DEBUGVIEW_COLOR_3 
+        }) {}
         CLAY(scrollId, {
-.layout = {
-.sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)} },
-.clip = {
-.horizontal = true,
-.vertical = true,
-.childOffset = Clay_GetScrollOffset() } }) {
+            .layout = {
+                .sizing = {
+                    CLAY_SIZING_GROW(0), 
+                    CLAY_SIZING_GROW(0)
+                } 
+            },
+            .clip = {
+                .horizontal = true,
+                .vertical = true,
+                .childOffset = Clay_GetScrollOffset() 
+            } 
+        }) {
             CLAY_AUTO_ID({
 .layout = {
 .sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)},
@@ -142,44 +150,67 @@ void Clay__RenderDebugView(void) {
                 Clay_ElementId panelContentsId = Clay__HashString(CLAY_STRING("Clay__DebugViewPaneOuter"), 0);
                 // Element list
                 CLAY(panelContentsId, {
-.layout = {
-.sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)} },
-.floating = {
-.zIndex = 32766,
-.pointerCaptureMode = CLAY_POINTER_CAPTURE_MODE_PASSTHROUGH,
-.attachTo = CLAY_ATTACH_TO_PARENT,
-.clipTo = CLAY_CLIP_TO_ATTACHED_PARENT } }) {
+                    .layout = {
+                        .sizing = {
+                            CLAY_SIZING_GROW(0), 
+                            CLAY_SIZING_GROW(0)
+                        }
+                    },
+                    .floating = {
+                        .zIndex = 32766,
+                        .pointerCaptureMode = CLAY_POINTER_CAPTURE_MODE_PASSTHROUGH,
+                        .attachTo = CLAY_ATTACH_TO_PARENT,
+                        .clipTo = CLAY_CLIP_TO_ATTACHED_PARENT 
+                    } 
+                }) {
                     CLAY_AUTO_ID({
-.layout = {
-.sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)},
-.padding = { CLAY__DEBUGVIEW_OUTER_PADDING, CLAY__DEBUGVIEW_OUTER_PADDING, 0, 0 },
-.layoutDirection = CLAY_TOP_TO_BOTTOM } }) {
-                        layoutData = Clay__RenderDebugLayoutElementsList((int32_t)initialRootsLength, highlightedRow);
+                        .layout = {
+                            .sizing = {
+                                CLAY_SIZING_GROW(0), 
+                                CLAY_SIZING_GROW(0)
+                            },
+                            .padding = { 
+                                CLAY__DEBUGVIEW_OUTER_PADDING, 
+                                CLAY__DEBUGVIEW_OUTER_PADDING, 
+                                0, 
+                                0 
+                            },
+                            .layoutDirection = CLAY_TOP_TO_BOTTOM 
+                        } 
+                    }) {
+                            layoutData = Clay__RenderDebugLayoutElementsList((int32_t)initialRootsLength, highlightedRow);
+                        }
                     }
-                }
-                float contentWidth = Clay__GetHashMapItem(panelContentsId.id)->layoutElement->dimensions.width;
-                CLAY_AUTO_ID({
-.layout = {
-.sizing = {
-.width = CLAY_SIZING_FIXED(contentWidth) 
-},
-.layoutDirection = CLAY_TOP_TO_BOTTOM } }) {}
-                for (int32_t i = 0; i < layoutData.rowCount; i++) {
-                    Clay_Color rowColor = (i & 1) == 0 ? CLAY__DEBUGVIEW_COLOR_2 : CLAY__DEBUGVIEW_COLOR_1;
-                    if (i == layoutData.selectedElementRowIndex) {
-                        rowColor = CLAY__DEBUGVIEW_COLOR_SELECTED_ROW;
-                    }
-                    if (i == highlightedRow) {
-                        rowColor.r *= 1.25f;
-                        rowColor.g *= 1.25f;
-                        rowColor.b *= 1.25f;
-                    }
+                    float contentWidth = Clay__GetHashMapItem(panelContentsId.id)->layoutElement->dimensions.width;
                     CLAY_AUTO_ID({
-.layout = {
-.sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_FIXED(CLAY__DEBUGVIEW_ROW_HEIGHT)},
-.layoutDirection = CLAY_TOP_TO_BOTTOM },
-.backgroundColor = rowColor } ) {}
-                }
+                        .layout = {
+                            .sizing = {
+                                .width = CLAY_SIZING_FIXED(contentWidth) 
+                            },
+                            .layoutDirection = CLAY_TOP_TO_BOTTOM 
+                        } 
+                    }) {}
+                                    for (int32_t i = 0; i < layoutData.rowCount; i++) {
+                                        Clay_Color rowColor = (i & 1) == 0 ? CLAY__DEBUGVIEW_COLOR_2 : CLAY__DEBUGVIEW_COLOR_1;
+                                        if (i == layoutData.selectedElementRowIndex) {
+                                            rowColor = CLAY__DEBUGVIEW_COLOR_SELECTED_ROW;
+                                        }
+                                        if (i == highlightedRow) {
+                                            rowColor.r *= 1.25f;
+                                            rowColor.g *= 1.25f;
+                                            rowColor.b *= 1.25f;
+                                        }
+                                        CLAY_AUTO_ID({
+                                            .layout = {
+                                                .sizing = {
+                                                    CLAY_SIZING_GROW(0), 
+                                                    CLAY_SIZING_FIXED(CLAY__DEBUGVIEW_ROW_HEIGHT)
+                                                },
+                                                .layoutDirection = CLAY_TOP_TO_BOTTOM 
+                                            }
+                                            .backgroundColor = rowColor 
+                                        }) {}
+                                    }
             }
         }
         CLAY_AUTO_ID({

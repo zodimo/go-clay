@@ -6,53 +6,55 @@ import (
 )
 
 type MemArray[T any] struct {
-	Capacity        int32
-	length          int32
-	BaseAddress     uintptr
-	InternalAddress uintptr
 	isHashmap       bool
 	ZeroValue       T
 	ZeroValuePtr    *T
+	internalArray   []T
+	hashInitialised bool
 }
 
 func (m *MemArray[T]) Length() int32 {
-	if m.isHashmap {
-		return m.Capacity - 1
-	}
-	return m.length
+	return int32(len(m.internalArray))
 }
 
 func (m *MemArray[T]) initHashMap() {
-	for i := int32(0); i < m.Capacity; i++ {
+	if m.hashInitialised {
+		return
+	}
+	m.hashInitialised = true
+	for i := int32(0); i < m.Capacity()-2; i++ {
 		m.Add(m.ZeroValue)
 	}
+
+}
+func (m *MemArray[T]) Capacity() int32 {
+	return int32(cap(m.internalArray))
 }
 
 func (m *MemArray[T]) Add(item T) *T {
 	if m.isFull() {
-		panic(fmt.Sprintf("MemArray.Add capacity exceeded: %d + 1 > %d", m.Length(), m.Capacity))
+		panic(fmt.Sprintf("MemArray.Add capacity exceeded: %d + 1 > %d", m.Length(), m.Capacity()))
 	}
-	internalArray := m.InternalArray()
-	*internalArray = append(*internalArray, item)
-	m.length++
-	return &(*internalArray)[m.length-1]
+	m.internalArray = m.internalArray[:m.Length()+1]
+	m.internalArray[m.Length()-1] = item
+	return &m.internalArray[m.Length()-1]
 }
 
 func (m *MemArray[T]) Get(index int32) *T {
 
 	if !rangeCheck(index, m.Length()) {
-		message := fmt.Sprintf("MemArray.Get index out of bounds: %d, length: %d\n", index, m.length)
+		message := fmt.Sprintf("MemArray.Get index out of bounds: %d, length: %d\n", index, m.Length())
 		panic(message)
 	}
 
 	internalArray := m.InternalArray()
-	return &(*internalArray)[index]
+	return &internalArray[index]
 }
 
 func (m *MemArray[T]) GetUnsafe(index int32) *T {
 
-	if !rangeCheck(index, m.Capacity) {
-		message := fmt.Sprintf("MemArray.GetUnsafe index out of bounds: %d, capacity: %d\n", index, m.Capacity)
+	if !rangeCheck(index, m.Capacity()) {
+		message := fmt.Sprintf("MemArray.GetUnsafe index out of bounds: %d, capacity: %d\n", index, m.Capacity())
 		panic(message)
 	}
 
@@ -61,13 +63,13 @@ func (m *MemArray[T]) GetUnsafe(index int32) *T {
 	}
 
 	internalArray := m.InternalArray()
-	return &(*internalArray)[index]
+	return &internalArray[index]
 }
 
 func (m *MemArray[T]) GetValueUnsafe(index int32) T {
 
-	if !rangeCheck(index, m.Capacity) {
-		message := fmt.Sprintf("MemArray.GetValueUnsafe index out of bounds: %d, capacity: %d\n", index, m.Capacity)
+	if !rangeCheck(index, m.Capacity()) {
+		message := fmt.Sprintf("MemArray.GetValueUnsafe index out of bounds: %d, capacity: %d\n", index, m.Capacity())
 		panic(message)
 	}
 
@@ -76,25 +78,25 @@ func (m *MemArray[T]) GetValueUnsafe(index int32) T {
 	}
 
 	internalArray := m.InternalArray()
-	return (*internalArray)[index]
+	return internalArray[index]
 }
 
 func (m *MemArray[T]) Set(index int32, item T) {
 	if !rangeCheck(index, m.Length()) {
-		message := fmt.Sprintf("MemArray.Set index out of bounds: %d, length: %d\n", index, m.length)
+		message := fmt.Sprintf("MemArray.Set index out of bounds: %d, length: %d\n", index, m.Length())
 		panic(message)
 	}
 	internalArray := m.InternalArray()
-	(*internalArray)[index] = item
+	internalArray[index] = item
 }
 
 func (m *MemArray[T]) GetValue(index int32) T {
 	if !rangeCheck(index, m.Length()) {
-		message := fmt.Sprintf("MemArray.GetValue index out of bounds: %d, length: %d\n", index, m.length)
+		message := fmt.Sprintf("MemArray.GetValue index out of bounds: %d, length: %d\n", index, m.Length())
 		panic(message)
 	}
 	internalArray := m.InternalArray()
-	return (*internalArray)[index]
+	return internalArray[index]
 }
 
 func (m *MemArray[T]) RemoveSwapback(index int32) T {
@@ -102,45 +104,45 @@ func (m *MemArray[T]) RemoveSwapback(index int32) T {
 		message := fmt.Sprintf("MemArray.RemoveSwapback index out of bounds: %d, length: %d\n", index, m.Length())
 		panic(message)
 	}
-	m.length--
-	removed := (*m.InternalArray())[index]
-	(*m.InternalArray())[index] = (*m.InternalArray())[m.length]
+
+	removed := m.internalArray[index]
+	m.internalArray[index] = m.internalArray[m.Length()-1]
+	m.internalArray = m.internalArray[:m.Length()-1]
+
 	return removed
 }
 
 func (m *MemArray[T]) Reset() {
 	if m.isHashmap {
-		m.initHashMap()
+		for i := int32(0); i < m.Capacity()-2; i++ {
+			m.Set(i, m.ZeroValue)
+		}
+	} else {
+		m.internalArray = m.internalArray[:0]
+
 	}
-	m.length = 0
 }
 
 func (m *MemArray[T]) Shrink(length int32) {
-	if m.length < length {
-		panic(fmt.Sprintf("MemArray.Shrink length is greater than the array length: %d < %d", m.length, length))
+	if m.Length() < length {
+		panic(fmt.Sprintf("MemArray.Shrink length is greater than the array length: %d < %d", m.Length(), length))
 	}
-	m.length -= length
+	m.internalArray = m.internalArray[:m.Length()-length]
 }
 
 func (m *MemArray[T]) Grow(length int32) {
-	if m.length+length > m.Capacity {
-		panic(fmt.Sprintf("MemArray.Grow capacity exceeded: %d + %d > %d", m.length, length, m.Capacity))
+	if m.Length()+length > m.Capacity() {
+		panic(fmt.Sprintf("MemArray.Grow capacity exceeded: %d + %d > %d", m.Length(), length, m.Capacity()))
 	}
-	m.length += length
+	m.internalArray = m.internalArray[:m.Length()+length]
 }
 
 func (m *MemArray[T]) isFull() bool {
-	return m.Length() == m.Capacity
+	return m.Length() == m.Capacity()
 }
 
-func (c *MemArray[T]) InternalArray() *[]T {
-	ptr := UintptrToPtr[[]T](c.BaseAddress, c.InternalAddress)
-	return ptr
-}
-
-func (c *MemArray[T]) UnWrap() []T {
-	ptr := UintptrToPtr[[]T](c.BaseAddress, c.InternalAddress)
-	return *ptr
+func (c *MemArray[T]) InternalArray() []T {
+	return c.internalArray
 }
 
 type MemArrayOptions[T any] struct {
@@ -193,12 +195,12 @@ func NewMemArray[T any](capacity int32, options ...MemArrayOption[T]) MemArray[T
 		option(&opts)
 	}
 
-	zero := new(T)
-	size := unsafe.Sizeof(*zero)
-	internalArrayAddress, err := opts.Arena.Array_Allocate_Arena(capacity, uint32(size))
-	if err != nil {
-		panic(err)
-	}
+	// zero := new(T)
+	// size := unsafe.Sizeof(*zero)
+	// internalArrayAddress, err := opts.Arena.Array_Allocate_Arena(capacity, uint32(size))
+	// if err != nil {
+	// 	panic(err)
+	// }
 	// // Convert the address to a pointer to the first element
 	// firstElementPtr := UintptrToPtr[T](uintptr(unsafe.Pointer(opts.Arena.basePtr)), internalArrayAddress)
 	// // Create a slice from the pointer with the correct length and capacity
@@ -206,13 +208,10 @@ func NewMemArray[T any](capacity int32, options ...MemArrayOption[T]) MemArray[T
 	// internalArray := &internalArraySlice
 
 	m := MemArray[T]{
-		Capacity:        capacity,
-		length:          0,
-		BaseAddress:     uintptr(unsafe.Pointer(opts.Arena.basePtr)),
-		InternalAddress: internalArrayAddress,
-		isHashmap:       opts.IsHashmap,
-		ZeroValue:       opts.ZeroValue,
-		ZeroValuePtr:    opts.ZeroValuePtr,
+		isHashmap:     opts.IsHashmap,
+		ZeroValue:     opts.ZeroValue,
+		ZeroValuePtr:  opts.ZeroValuePtr,
+		internalArray: make([]T, 0, capacity),
 	}
 	if opts.IsHashmap {
 		m.initHashMap()
@@ -258,7 +257,7 @@ func MArray_Reset[T any](array *MemArray[T]) {
 	array.Reset()
 }
 func MArray_GetAll[T any](array *MemArray[T]) []T {
-	return array.UnWrap()
+	return array.internalArray
 }
 
 func MArray_Shrink[T any](array *MemArray[T], length int32) {

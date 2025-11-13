@@ -47,7 +47,7 @@ func HashNumber(offset uint32, seed uint32) HashElementId {
 }
 
 func AddHashMapItem[T any](htx *HashMapContext[T], elementId HashElementId, element *T) *HashMapItem[T] {
-	if htx.HashMapInternal.Length() == htx.HashMapInternal.Capacity-1 {
+	if htx.HashMapInternal.Length() == htx.HashMapInternal.Capacity()-1 {
 		return nil
 	}
 	item := HashMapItem[T]{
@@ -58,7 +58,7 @@ func AddHashMapItem[T any](htx *HashMapContext[T], elementId HashElementId, elem
 	}
 
 	// Perform modulo with uint32 first to avoid negative results, then cast to int32
-	hashBucket := int32(elementId.Id % uint32(htx.HashMap.Capacity))
+	hashBucket := int32(elementId.Id % uint32(htx.HashMap.Capacity()))
 	hashItemPrevious := int32(-1)
 	hashItemIndex := MArray_GetValue(&htx.HashMap, hashBucket)
 

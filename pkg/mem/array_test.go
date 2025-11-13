@@ -9,8 +9,8 @@ func TestNewMemArray(t *testing.T) {
 		capacity := int32(10)
 		arr := NewMemArray[int](capacity)
 
-		if arr.Capacity != capacity {
-			t.Errorf("expected Capacity = %d, got %d", capacity, arr.Capacity)
+		if arr.Capacity() != capacity {
+			t.Errorf("expected Capacity = %d, got %d", capacity, arr.Capacity())
 		}
 		if arr.Length() != 0 {
 			t.Errorf("expected Length = 0, got %d", arr.Length())
@@ -22,8 +22,8 @@ func TestNewMemArray(t *testing.T) {
 		capacity := int32(10)
 		arr := NewMemArray[int](capacity, MemArrayWithArena[int](NewArenaWithSizeUnsafe(1024)))
 
-		if arr.Capacity != capacity {
-			t.Errorf("expected Capacity = %d, got %d", capacity, arr.Capacity)
+		if arr.Capacity() != capacity {
+			t.Errorf("expected Capacity = %d, got %d", capacity, arr.Capacity())
 		}
 		if arr.Length() != 0 {
 			t.Errorf("expected Length = 0, got %d", arr.Length())
@@ -139,7 +139,7 @@ func TestMemArray_Get(t *testing.T) {
 
 		*ptr = 100
 		if MArray_GetValue(&arr, 0) != 100 {
-			t.Errorf("expected InternalArray[0] = 100 after modification, got %d", arr.UnWrap()[0])
+			t.Errorf("expected InternalArray[0] = 100 after modification, got %d", arr.InternalArray()[0])
 		}
 	})
 }
@@ -230,7 +230,7 @@ func TestMArray_Add(t *testing.T) {
 			t.Errorf("expected Length = 1, got %d", arr.Length())
 		}
 		if MArray_GetValue(&arr, 0) != 42 {
-			t.Errorf("expected InternalArray[0] = 42, got %d", arr.UnWrap()[0])
+			t.Errorf("expected InternalArray[0] = 42, got %d", arr.InternalArray()[0])
 		}
 	})
 
@@ -551,8 +551,8 @@ func TestMemArray_WithArena(t *testing.T) {
 		capacity := int32(10)
 		arr := NewMemArray[int](capacity, MemArrayWithArena[int](arena))
 
-		if arr.Capacity != capacity {
-			t.Errorf("expected Capacity = %d, got %d", capacity, arr.Capacity)
+		if arr.Capacity() != capacity {
+			t.Errorf("expected Capacity = %d, got %d", capacity, arr.Capacity())
 		}
 		if arr.Length() != 0 {
 			t.Errorf("expected Length = 0, got %d", arr.Length())

@@ -5,7 +5,7 @@ import "fmt"
 func Clay__GetHashMapItem(id uint32) *Clay_LayoutElementHashMapItem {
 	currentContext := Clay_GetCurrentContext()
 	// Perform modulo with uint32 first to avoid negative results, then cast to int32
-	hashBucket := int32(id % uint32(currentContext.LayoutElementsHashMap.Capacity))
+	hashBucket := int32(id % uint32(currentContext.LayoutElementsHashMap.Capacity()))
 
 	elementIndex := Clay__Array_GetValue(&currentContext.LayoutElementsHashMap, hashBucket)
 	for elementIndex != -1 {
@@ -21,7 +21,7 @@ func Clay__GetHashMapItem(id uint32) *Clay_LayoutElementHashMapItem {
 
 func Clay__AddHashMapItem(elementId Clay_ElementId, layoutElement *Clay_LayoutElement) *Clay_LayoutElementHashMapItem {
 	currentContext := Clay_GetCurrentContext()
-	if currentContext.LayoutElementsHashMapInternal.Length() == currentContext.LayoutElementsHashMapInternal.Capacity-1 {
+	if currentContext.LayoutElementsHashMapInternal.Length() == currentContext.LayoutElementsHashMapInternal.Capacity()-1 {
 		return nil
 	}
 	item := Clay_LayoutElementHashMapItem{
@@ -32,7 +32,7 @@ func Clay__AddHashMapItem(elementId Clay_ElementId, layoutElement *Clay_LayoutEl
 	}
 
 	// Perform modulo with uint32 first to avoid negative results, then cast to int32
-	hashBucket := int32(elementId.Id % uint32(currentContext.LayoutElementsHashMap.Capacity))
+	hashBucket := int32(elementId.Id % uint32(currentContext.LayoutElementsHashMap.Capacity()))
 	hashItemPrevious := int32(-1)
 	hashItemIndex := Clay__Array_GetValue(&currentContext.LayoutElementsHashMap, hashBucket)
 	for hashItemIndex != -1 { // Just replace collision, not a big deal - leave it up to the end user

@@ -37,13 +37,8 @@ func Clay__Array_Allocate_Arena[T any](capacity int32, arena *Clay_Arena, option
 }
 
 type Clay__LayoutElementChildren struct {
-	ElementsPtr mem.SafeMemoryPointer[[]int32] // *elements, this translation is not working as expected
-	Length      uint16
-}
-
-func (c *Clay__LayoutElementChildren) Elements() []int32 {
-	ptr := mem.UintptrToPtr[[]int32](c.ElementsPtr.BaseAddress, c.ElementsPtr.InternalAddress)
-	return *ptr
+	Elements []int32
+	Length   uint16
 }
 
 type Clay__LayoutElementChildrenOrTextContent struct {
@@ -94,11 +89,12 @@ func Clay__CloseElement() {
 	// Attach children to the current open element
 
 	//attach to the unallocated slice at the end of the array from length to capacity
-	remainderSlicePointer := mem.MArray_GetIndexMemory(
-		&currentContext.LayoutElementChildren,
-		currentContext.LayoutElementChildren.Length())
 
-	openLayoutElement.ChildrenOrTextContent.Children.ElementsPtr = remainderSlicePointer
+	openLayoutElement.ChildrenOrTextContent.Children.Elements = mem.MArray_GetSlice(
+		&currentContext.LayoutElementChildren,
+		currentContext.LayoutElementChildren.Length(),
+		currentContext.LayoutElementChildren.Capacity(),
+	)
 
 	if layoutConfig.LayoutDirection == CLAY_LEFT_TO_RIGHT {
 		openLayoutElement.Dimensions.Width = leftRightPadding
@@ -792,7 +788,7 @@ func Clay__SizeContainersAlongAxis(xAxis bool) {
 			for childOffset := int32(0); childOffset < int32(parent.ChildrenOrTextContent.Children.Length); childOffset++ {
 				fmt.Printf("Clay__SizeContainersAlongAxis childOffset: %d\n", childOffset)
 				fmt.Printf("Clay__SizeContainersAlongAxis parent.ChildrenOrTextContent.Children.Length: %d\n", parent.ChildrenOrTextContent.Children.Length)
-				childElementIndex := mem.NewMemSliceWithData(parent.ChildrenOrTextContent.Children.Elements()).Get(childOffset)
+				childElementIndex := parent.ChildrenOrTextContent.Children.Elements[childOffset]
 				childElement := Clay__Array_Get(&currentContext.LayoutElements, childElementIndex)
 				var childSizing Clay_SizingAxis
 				if xAxis {
@@ -837,7 +833,7 @@ func Clay__SizeContainersAlongAxis(xAxis bool) {
 
 			// Expand percentage containers to size
 			for childOffset := int32(0); childOffset < int32(parent.ChildrenOrTextContent.Children.Length); childOffset++ {
-				childElementIndex := mem.NewMemSliceWithData(parent.ChildrenOrTextContent.Children.Elements()).Get(childOffset)
+				childElementIndex := parent.ChildrenOrTextContent.Children.Elements[childOffset]
 				childElement := Clay__Array_Get(&currentContext.LayoutElements, childElementIndex)
 				var childSizing Clay_SizingAxis
 				var childSize float32
@@ -1079,7 +1075,7 @@ func Clay__CalculateFinalLayout() {
 			currentContext.MeasureTextUserData).Width
 		wordIndex := measureTextCacheItem.MeasuredWordsStartIndex
 		for wordIndex != -1 {
-			if currentContext.WrappedTextLines.Length() > currentContext.WrappedTextLines.Capacity-1 {
+			if currentContext.WrappedTextLines.Length() > currentContext.WrappedTextLines.Capacity()-1 {
 				break
 			}
 			measuredWord := Clay__Array_Get(&currentContext.MeasuredWords, wordIndex)
@@ -1205,7 +1201,7 @@ func Clay__CalculateFinalLayout() {
 				Clay__Array_Add(&dfsBuffer, Clay__LayoutElementTreeNode{
 					LayoutElement: Clay__Array_Get(
 						&currentContext.LayoutElements,
-						currentElement.ChildrenOrTextContent.Children.Elements()[childIndex],
+						currentElement.ChildrenOrTextContent.Children.Elements[childIndex],
 					),
 				},
 				)
@@ -1219,7 +1215,7 @@ func Clay__CalculateFinalLayout() {
 		if layoutConfig.LayoutDirection == CLAY_LEFT_TO_RIGHT {
 			// Resize any parent containers that have grown in height along their non layout axis
 			for childIndex := int32(0); childIndex < int32(currentElement.ChildrenOrTextContent.Children.Length); childIndex++ {
-				childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements()[childIndex])
+				childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements[childIndex])
 				childHeightWithPadding := CLAY__MAX(childElement.Dimensions.Height+float32(layoutConfig.Padding.Top)+float32(layoutConfig.Padding.Bottom), currentElement.Dimensions.Height)
 				currentElement.Dimensions.Height = CLAY__MIN(CLAY__MAX(childHeightWithPadding, layoutConfig.Sizing.Height.Size.MinMax.Min), layoutConfig.Sizing.Height.Size.MinMax.Max)
 			}
@@ -1227,7 +1223,7 @@ func Clay__CalculateFinalLayout() {
 			// Resizing along the layout axis
 			contentHeight := float32(layoutConfig.Padding.Top + layoutConfig.Padding.Bottom)
 			for childIndex := int32(0); childIndex < int32(currentElement.ChildrenOrTextContent.Children.Length); childIndex++ {
-				childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements()[childIndex])
+				childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements[childIndex])
 				contentHeight += childElement.Dimensions.Height
 			}
 			contentHeight += float32(CLAY__MAX(int32(currentElement.ChildrenOrTextContent.Children.Length)-1, 0) * int32(layoutConfig.ChildGap))
@@ -1428,7 +1424,7 @@ func Clay__CalculateFinalLayout() {
 					hashMapItem.BoundingBox = currentElementBoundingBox
 				}
 
-				sortedConfigIndexes := make([]int32, 20)
+				sortedConfigIndexes := make([]int32, currentElement.ElementConfigs.Length())
 				for elementConfigIndex := int32(0); elementConfigIndex < currentElement.ElementConfigs.Length(); elementConfigIndex++ {
 					sortedConfigIndexes[elementConfigIndex] = elementConfigIndex
 				}
@@ -1611,7 +1607,7 @@ func Clay__CalculateFinalLayout() {
 					contentSize := Clay_Dimensions{Width: 0, Height: 0}
 					if layoutConfig.LayoutDirection == CLAY_LEFT_TO_RIGHT {
 						for i := int32(0); i < int32(currentElement.ChildrenOrTextContent.Children.Length); i++ {
-							childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements()[i])
+							childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements[i])
 							contentSize.Width += childElement.Dimensions.Width
 							contentSize.Height = CLAY__MAX(contentSize.Height, childElement.Dimensions.Height)
 						}
@@ -1630,7 +1626,7 @@ func Clay__CalculateFinalLayout() {
 						extraSpace = CLAY__MAX(0, extraSpace)
 					} else {
 						for i := int32(0); i < int32(currentElement.ChildrenOrTextContent.Children.Length); i++ {
-							childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements()[i])
+							childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements[i])
 							contentSize.Width = CLAY__MAX(contentSize.Width, childElement.Dimensions.Width)
 							contentSize.Height += childElement.Dimensions.Height
 						}
@@ -1713,7 +1709,7 @@ func Clay__CalculateFinalLayout() {
 							}
 							if layoutConfig.LayoutDirection == CLAY_LEFT_TO_RIGHT {
 								for i := int32(0); i < int32(currentElement.ChildrenOrTextContent.Children.Length); i++ {
-									childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements()[i])
+									childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements[i])
 									if i > 0 {
 										Clay__AddRenderCommand(Clay_RenderCommand{
 											BoundingBox: Clay_BoundingBox{
@@ -1736,7 +1732,7 @@ func Clay__CalculateFinalLayout() {
 								}
 							} else {
 								for i := int32(0); i < int32(currentElement.ChildrenOrTextContent.Children.Length); i++ {
-									childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements()[i])
+									childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements[i])
 									if i > 0 {
 										Clay__AddRenderCommand(Clay_RenderCommand{
 											BoundingBox: Clay_BoundingBox{
@@ -1777,7 +1773,7 @@ func Clay__CalculateFinalLayout() {
 			if !Clay__ElementHasConfig(currentElement, CLAY__ELEMENT_CONFIG_TYPE_TEXT) {
 				Clay__Array_Grow(&dfsBuffer, int32(currentElement.ChildrenOrTextContent.Children.Length))
 				for i := int32(0); i < int32(currentElement.ChildrenOrTextContent.Children.Length); i++ {
-					childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements()[i])
+					childElement := Clay__Array_Get(&currentContext.LayoutElements, currentElement.ChildrenOrTextContent.Children.Elements[i])
 					// Alignment along non layout axis
 					if layoutConfig.LayoutDirection == CLAY_LEFT_TO_RIGHT {
 						currentElementTreeNode.NextChildOffset.Y = float32(currentElement.LayoutConfig.Padding.Top)
@@ -1846,7 +1842,7 @@ func Clay__CalculateFinalLayout() {
 
 func Clay__AddRenderCommand(renderCommand Clay_RenderCommand) {
 	currentContext := Clay_GetCurrentContext()
-	if currentContext.RenderCommands.Length() < currentContext.RenderCommands.Capacity-1 {
+	if currentContext.RenderCommands.Length() < currentContext.RenderCommands.Capacity()-1 {
 		Clay__Array_Add(&currentContext.RenderCommands, renderCommand)
 	} else {
 		if !currentContext.BooleanWarnings.MaxRenderCommandsExceeded {
@@ -1872,7 +1868,7 @@ func Clay__GenerateIdForAnonymousElement(openLayoutElement *Clay_LayoutElement) 
 
 func Clay__OpenElement() {
 	currentContext := Clay_GetCurrentContext()
-	if currentContext.LayoutElements.Length() == currentContext.LayoutElements.Capacity-1 || currentContext.BooleanWarnings.MaxElementsExceeded {
+	if currentContext.LayoutElements.Length() == currentContext.LayoutElements.Capacity()-1 || currentContext.BooleanWarnings.MaxElementsExceeded {
 		currentContext.BooleanWarnings.MaxElementsExceeded = true
 		return
 	}
@@ -1888,7 +1884,7 @@ func Clay__OpenElement() {
 }
 func Clay__OpenElementWithId(elementId Clay_ElementId) {
 	currentContext := Clay_GetCurrentContext()
-	if currentContext.LayoutElements.Length() == currentContext.LayoutElements.Capacity-1 || currentContext.BooleanWarnings.MaxElementsExceeded {
+	if currentContext.LayoutElements.Length() == currentContext.LayoutElements.Capacity()-1 || currentContext.BooleanWarnings.MaxElementsExceeded {
 		currentContext.BooleanWarnings.MaxElementsExceeded = true
 		return
 	}
@@ -1932,8 +1928,8 @@ func Clay__AttachElementConfig(config Clay_ElementConfigUnion, configType Clay__
 	if currentContext.BooleanWarnings.MaxElementsExceeded {
 		return Clay_ElementConfig{}
 	}
-	openLayoutElement := Clay__GetOpenLayoutElement()
-	Clay__Slice_Grow(&openLayoutElement.ElementConfigs, 1)
+	// openLayoutElement := Clay__GetOpenLayoutElement()
+	// Clay__Slice_Grow(&openLayoutElement.ElementConfigs, 1)
 	return *Clay__Array_Add(&currentContext.ElementConfigs, Clay_ElementConfig{Type: configType, Config: config})
 }
 
@@ -2009,13 +2005,11 @@ func Clay__ConfigureOpenElementPtr(elementDeclaration *Clay_ElementDeclaration) 
 		})
 	}
 
-	//get a lice of the next available slot in the element configs array
-	nextAvailableElementConfigIndex := currentContext.ElementConfigs.Length()
-	fmt.Println("nextAvailableElementConfigIndex", nextAvailableElementConfigIndex)
-
-	elementConfigsPointer := mem.MArray_GetIndexMemory(&currentContext.ElementConfigs, nextAvailableElementConfigIndex)
-	openLayoutElement.ElementConfigs.BaseAddress = elementConfigsPointer.BaseAddress
-	openLayoutElement.ElementConfigs.InternalAddress = elementConfigsPointer.InternalAddress
+	elementConfigs, err := mem.CreateSliceFromRange(&currentContext.ElementConfigs, currentContext.ElementConfigs.Length(), currentContext.ElementConfigs.Capacity()-currentContext.ElementConfigs.Length())
+	if err != nil {
+		panic(err)
+	}
+	openLayoutElement.ElementConfigs = elementConfigs
 
 	var sharedConfig *Clay_SharedElementConfig = nil
 
@@ -2161,7 +2155,7 @@ func Clay__MeasureTextCached(text *Clay_String, textConfig *Clay_TextElementConf
 
 func Clay__OpenTextElement(text Clay_String, textConfig *Clay_TextElementConfig) {
 	currentContext := Clay_GetCurrentContext()
-	if currentContext.LayoutElements.Length() == currentContext.LayoutElements.Capacity-1 || currentContext.BooleanWarnings.MaxElementsExceeded {
+	if currentContext.LayoutElements.Length() == currentContext.LayoutElements.Capacity()-1 || currentContext.BooleanWarnings.MaxElementsExceeded {
 		currentContext.BooleanWarnings.MaxElementsExceeded = true
 		return
 	}

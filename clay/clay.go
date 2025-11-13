@@ -224,12 +224,8 @@ func Clay_Initialize(arena Clay_Arena, layoutDimensions Clay_Dimensions, errorHa
 	Clay__InitializeEphemeralMemory(newContext)
 
 	// reset the hash maps
-	for i := int32(0); i < newContext.LayoutElementsHashMap.Capacity; i++ {
-		Clay__Array_Set(&newContext.LayoutElementsHashMap, i, -1)
-	}
-	for i := int32(0); i < newContext.MeasureTextHashMap.Capacity; i++ {
-		Clay__Array_Set(&newContext.MeasureTextHashMap, i, 0)
-	}
+	newContext.LayoutElementsHashMap.Reset()
+	newContext.MeasureTextHashMap.Reset()
 
 	return newContext
 }
@@ -282,7 +278,7 @@ func Clay_EndLayout() []Clay_RenderCommand {
 	currentContext := Clay_GetCurrentContext()
 	Clay__CloseElement()
 
-	if currentContext.OpenLayoutElementStack.Length > 1 {
+	if currentContext.OpenLayoutElementStack.Length() > 1 {
 		currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
 			ErrorType: CLAY_ERROR_TYPE_UNBALANCED_OPEN_CLOSE,
 			ErrorText: CLAY_STRING("There were still open layout elements when EndLayout was called. This results from an unequal number of calls to Clay__OpenElement and Clay__CloseElement."),

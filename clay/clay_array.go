@@ -22,9 +22,18 @@ type Clay__Array[T any] = mem.MemArray[T]
 // 	return index < length && index >= 0
 // }
 
+func Clay__Array_Pop[T any](array *Clay__Array[T]) T {
+	return mem.MArray_RemoveSwapback(array, array.Length()-1)
+}
+
 func Clay__Array_Get[T any](array *Clay__Array[T], index int32) *T {
 	return mem.MArray_Get(array, index)
 }
+
+func Clay__Array_GetUnsafe[T any](array *Clay__Array[T], index int32) *T {
+	return mem.MArray_GetUnsafe(array, index)
+}
+
 func Clay__Array_GetValue[T any](array *Clay__Array[T], index int32) T {
 	return mem.MArray_GetValue(array, index)
 }
@@ -39,6 +48,18 @@ func Clay__Array_Set[T any](array *Clay__Array[T], index int32, item T) {
 
 func Clay__Array_RemoveSwapback[T any](array *Clay__Array[T], index int32) T {
 	return mem.MArray_RemoveSwapback(array, index)
+}
+
+func Clay__Array_Shrink[T any](array *Clay__Array[T], length int32) {
+	mem.MArray_Shrink(array, length)
+}
+
+func Clay__Array_Grow[T any](array *Clay__Array[T], length int32) {
+	mem.MArray_Grow(array, length)
+}
+
+func Clay__Array_Reset[T any](array *Clay__Array[T]) {
+	mem.MArray_Reset(array)
 }
 
 // typeName arrayName##_RemoveSwapback(arrayName *array, int32_t index) {                                          \

@@ -47,7 +47,7 @@ func HashNumber(offset uint32, seed uint32) HashElementId {
 }
 
 func AddHashMapItem[T any](htx *HashMapContext[T], elementId HashElementId, element *T) *HashMapItem[T] {
-	if htx.HashMapInternal.Length == htx.HashMapInternal.Capacity-1 {
+	if htx.HashMapInternal.Length() == htx.HashMapInternal.Capacity-1 {
 		return nil
 	}
 	item := HashMapItem[T]{
@@ -82,9 +82,9 @@ func AddHashMapItem[T any](htx *HashMapContext[T], elementId HashElementId, elem
 
 	hashItem := MArray_Add(&htx.HashMapInternal, item)
 	if hashItemPrevious != -1 {
-		MArray_Get[HashMapItem[T]](&htx.HashMapInternal, hashItemPrevious).NextIndex = htx.HashMapInternal.Length - 1
+		MArray_Get[HashMapItem[T]](&htx.HashMapInternal, hashItemPrevious).NextIndex = htx.HashMapInternal.Length() - 1
 	} else {
-		MArray_Set(&htx.HashMap, hashBucket, htx.HashMapInternal.Length-1)
+		MArray_Set(&htx.HashMap, hashBucket, htx.HashMapInternal.Length()-1)
 	}
 	return hashItem
 }

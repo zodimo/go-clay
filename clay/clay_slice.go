@@ -18,15 +18,20 @@ type Clay__Slice[T any] = mem.MemSlice[T]
 // 	InternalArray []T
 // }
 
-func NewClay__Slice[T any](length int32) Clay__Slice[T] {
-	return Clay__Slice[T]{
-		Length:        length,
-		InternalArray: make([]T, length),
-	}
+func NewClay__Slice[T any](data []T) Clay__Slice[T] {
+	return mem.NewMemSliceWithData[T](data)
 }
 
 func Clay__Slice_Get[T any](slice *Clay__Slice[T], index int32) *T {
 	return mem.MSlice_Get(slice, index)
+}
+
+func Clay__Slice_Grow[T any](slice *Clay__Slice[T], length int32) {
+	mem.MSlice_Grow(slice, length)
+}
+
+func Clay__Slice_Shrink[T any](slice *Clay__Slice[T], length int32) {
+	mem.MSlice_Shrink(slice, length)
 }
 
 // CreateSliceFromRange simulates the process of creating a non-owning slice

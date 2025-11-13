@@ -4,10 +4,19 @@
 
 
 
-
-
-
-
+Clay_LayoutElementHashMapItem *Clay__GetHashMapItem(uint32_t id) {
+    Clay_Context* context = Clay_GetCurrentContext();
+    uint32_t hashBucket = id % context->layoutElementsHashMap.capacity;
+    int32_t elementIndex = context->layoutElementsHashMap.internalArray[hashBucket];
+    while (elementIndex != -1) {
+        Clay_LayoutElementHashMapItem *hashEntry = Clay__LayoutElementHashMapItemArray_Get(&context->layoutElementsHashMapInternal, elementIndex);
+        if (hashEntry->elementId.id == id) {
+            return hashEntry;
+        }
+        elementIndex = hashEntry->nextIndex;
+    }
+    return &Clay_LayoutElementHashMapItem_DEFAULT;
+}
 
 
 
@@ -62,3 +71,5 @@ Clay_LayoutElementHashMapItem* Clay__AddHashMapItem(Clay_ElementId elementId, Cl
     }
     return hashItem;
 }
+
+

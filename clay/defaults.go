@@ -9,6 +9,10 @@ var CLAY__SPACECHAR = Clay_String{Length: 1, Chars: []byte{' '}}
 
 var Clay_LayoutConfig_DEFAULT = Clay_LayoutConfig{}
 
+var Clay__CornerRadius_DEFAULT = Clay_CornerRadius{}
+
+var Clay__BorderWidth_DEFAULT = Clay_BorderWidth{}
+
 var Clay_LayoutElementHashMapItem_DEFAULT = Clay_LayoutElementHashMapItem{}
 var Clay_SharedElementConfig_DEFAULT = Clay_SharedElementConfig{}
 var Clay__ErrorHandlerFunctionDefault = Clay_ErrorHandler{

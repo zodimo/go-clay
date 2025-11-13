@@ -1465,13 +1465,17 @@ func Clay__CalculateFinalLayout() {
 					shouldRender := !offscreen
 					switch elementConfig.Type {
 					case CLAY__ELEMENT_CONFIG_TYPE_ASPECT:
+						shouldRender = false
+						break
 					case CLAY__ELEMENT_CONFIG_TYPE_FLOATING:
+						shouldRender = false
+						break
 					case CLAY__ELEMENT_CONFIG_TYPE_SHARED:
+						shouldRender = false
+						break
 					case CLAY__ELEMENT_CONFIG_TYPE_BORDER:
-						{
-							shouldRender = false
-							break
-						}
+						shouldRender = false
+						break
 					case CLAY__ELEMENT_CONFIG_TYPE_CLIP:
 						{
 							renderCommand.CommandType = CLAY_RENDER_COMMAND_TYPE_SCISSOR_START
@@ -2005,11 +2009,8 @@ func Clay__ConfigureOpenElementPtr(elementDeclaration *Clay_ElementDeclaration) 
 		})
 	}
 
-	elementConfigs, err := mem.CreateSliceFromRange(&currentContext.ElementConfigs, currentContext.ElementConfigs.Length(), currentContext.ElementConfigs.Capacity()-currentContext.ElementConfigs.Length())
-	if err != nil {
-		panic(err)
-	}
-	openLayoutElement.ElementConfigs = elementConfigs
+	// Capture the starting length before attaching configs
+	elementConfigsStartLength := currentContext.ElementConfigs.Length()
 
 	var sharedConfig *Clay_SharedElementConfig = nil
 
@@ -2018,7 +2019,7 @@ func Clay__ConfigureOpenElementPtr(elementDeclaration *Clay_ElementDeclaration) 
 		sharedConfig.BackgroundColor = elementDeclaration.BackgroundColor
 		Clay__AttachElementConfig(Clay_ElementConfigUnion{SharedElementConfig: sharedConfig}, CLAY__ELEMENT_CONFIG_TYPE_SHARED)
 	}
-	if !Clay__MemCmpTyped(&elementDeclaration.CornerRadius, &Clay_CornerRadius{}) {
+	if !Clay__MemCmpTyped(&elementDeclaration.CornerRadius, &Clay__CornerRadius_DEFAULT) {
 		if sharedConfig != nil {
 			sharedConfig.CornerRadius = elementDeclaration.CornerRadius
 		} else {
@@ -2038,6 +2039,7 @@ func Clay__ConfigureOpenElementPtr(elementDeclaration *Clay_ElementDeclaration) 
 	}
 
 	if elementDeclaration.Image.ImageData != nil {
+		fmt.Println("Attaching image data", elementDeclaration.Image.ImageData)
 		Clay__AttachElementConfig(Clay_ElementConfigUnion{ImageElementConfig: Clay__StoreImageElementConfig(elementDeclaration.Image)}, CLAY__ELEMENT_CONFIG_TYPE_IMAGE)
 	}
 	if elementDeclaration.AspectRatio.AspectRatio > 0 {
@@ -2132,11 +2134,18 @@ func Clay__ConfigureOpenElementPtr(elementDeclaration *Clay_ElementDeclaration) 
 			scrollOffset.ScrollPosition = Clay__QueryScrollOffset(scrollOffset.ElementId, currentContext.QueryScrollOffsetUserData)
 		}
 	}
-	if !Clay__MemCmpTyped(&elementDeclaration.Border.Width, &Clay_BorderWidth{}) {
+	if !Clay__MemCmpTyped(&elementDeclaration.Border.Width, &Clay__BorderWidth_DEFAULT) {
 		Clay__AttachElementConfig(Clay_ElementConfigUnion{
 			BorderElementConfig: Clay__StoreBorderElementConfig(elementDeclaration.Border),
 		}, CLAY__ELEMENT_CONFIG_TYPE_BORDER)
 	}
+
+	// Set the element configs slice AFTER all configs have been attached
+	elementConfigs, err := mem.CreateSliceFromRange(&currentContext.ElementConfigs, elementConfigsStartLength, currentContext.ElementConfigs.Length())
+	if err != nil {
+		panic(err)
+	}
+	openLayoutElement.ElementConfigs = elementConfigs
 }
 
 func Clay__GetOpenLayoutElement() *Clay_LayoutElement {

@@ -1,7 +1,5 @@
 package clay
 
-import "fmt"
-
 func Clay__GetHashMapItem(id uint32) *Clay_LayoutElementHashMapItem {
 	currentContext := Clay_GetCurrentContext()
 	// Perform modulo with uint32 first to avoid negative results, then cast to int32
@@ -37,10 +35,6 @@ func Clay__AddHashMapItem(elementId Clay_ElementId, layoutElement *Clay_LayoutEl
 	hashItemIndex := Clay__Array_GetValue(&currentContext.LayoutElementsHashMap, hashBucket)
 	for hashItemIndex != -1 { // Just replace collision, not a big deal - leave it up to the end user
 		hashItem := Clay__Array_GetUnsafe[Clay_LayoutElementHashMapItem](&currentContext.LayoutElementsHashMapInternal, hashItemIndex)
-		fmt.Println("hashItem", hashItem)
-		if hashItem == &Clay_LayoutElementHashMapItem_DEFAULT {
-			panic("hashItem is default value")
-		}
 		if hashItem.ElementId.Id == elementId.Id { // Collision - resolve based on generation
 			item.NextIndex = hashItem.NextIndex
 			if hashItem.Generation <= currentContext.Generation { // First collision - assume this is the "same" element

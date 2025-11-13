@@ -5,6 +5,13 @@ type Clay_ErrorHandler struct {
 	UserData             interface{}
 }
 
+func NewErrorHandler(errorHandlerFunction func(errorData Clay_ErrorData), userData interface{}) Clay_ErrorHandler {
+	return Clay_ErrorHandler{
+		ErrorHandlerFunction: errorHandlerFunction,
+		UserData:             userData,
+	}
+}
+
 type Clay_ErrorType uint8
 
 // Represents the type of error clay encountered while computing layout.
@@ -29,6 +36,31 @@ const (
 	// Clay__OpenElement was called more times than Clay__CloseElement, so there were still remaining open elements when the layout ended.
 	CLAY_ERROR_TYPE_UNBALANCED_OPEN_CLOSE
 )
+
+func (e Clay_ErrorType) String() string {
+	switch e {
+	case CLAY_ERROR_TYPE_TEXT_MEASUREMENT_FUNCTION_NOT_PROVIDED:
+		return "TEXT_MEASUREMENT_FUNCTION_NOT_PROVIDED"
+	case CLAY_ERROR_TYPE_ARENA_CAPACITY_EXCEEDED:
+		return "ARENA_CAPACITY_EXCEEDED"
+	case CLAY_ERROR_TYPE_ELEMENTS_CAPACITY_EXCEEDED:
+		return "ELEMENTS_CAPACITY_EXCEEDED"
+	case CLAY_ERROR_TYPE_TEXT_MEASUREMENT_CAPACITY_EXCEEDED:
+		return "TEXT_MEASUREMENT_CAPACITY_EXCEEDED"
+	case CLAY_ERROR_TYPE_DUPLICATE_ID:
+		return "DUPLICATE_ID"
+	case CLAY_ERROR_TYPE_FLOATING_CONTAINER_PARENT_NOT_FOUND:
+		return "FLOATING_CONTAINER_PARENT_NOT_FOUND"
+	case CLAY_ERROR_TYPE_PERCENTAGE_OVER_1:
+		return "PERCENTAGE_OVER_1"
+	case CLAY_ERROR_TYPE_INTERNAL_ERROR:
+		return "INTERNAL_ERROR"
+	case CLAY_ERROR_TYPE_UNBALANCED_OPEN_CLOSE:
+		return "UNBALANCED_OPEN_CLOSE"
+	default:
+		return "UNKNOWN_ERROR_TYPE"
+	}
+}
 
 type Clay_ErrorData struct {
 	// Represents the type of error clay encountered while computing layout.

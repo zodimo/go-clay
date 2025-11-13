@@ -62,6 +62,10 @@ type Clay_String struct {
 	Chars []byte
 }
 
+func (s Clay_String) String() string {
+	return string(s.Chars[:s.Length])
+}
+
 type Clay__WrappedTextLine struct {
 	Line       Clay_String
 	Dimensions Clay_Dimensions

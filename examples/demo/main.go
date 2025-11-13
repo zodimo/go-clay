@@ -61,13 +61,13 @@ func run(w *app.Window) error {
 						Height: float32(gtx.Constraints.Max.Y),
 					},
 					// gioui.NewMeasurer(),
-					clay.Clay_ErrorHandler{
-						ErrorHandlerFunction: func(errorData clay.Clay_ErrorData) {
-							fmt.Printf("Error: %v\n", errorData)
-						},
-						UserData: nil,
-					},
+					clay.NewErrorHandler(func(errorData clay.Clay_ErrorData) {
+						fmt.Printf("ErrorMessage: %s\n", errorData.ErrorText.String())
+						fmt.Printf("ErrorType: %s\n", errorData.ErrorType.String())
+						fmt.Printf("UserData: %v\n", errorData.UserData)
+					}, nil),
 				)
+				// clay.Clay_SetDebugModeEnabled(true)
 				clayReady = true
 			}
 
@@ -96,7 +96,7 @@ func run(w *app.Window) error {
 				},
 			)
 
-			clay.Clay__CloseElement()
+			// clay.Clay__CloseElement()
 
 			// how to let the error show an element is not closed?
 
@@ -136,8 +136,10 @@ func run(w *app.Window) error {
 
 			fmt.Printf("Generated %d render commands\n", len(commands))
 			for i, cmd := range commands {
-				fmt.Printf("Command %d: Type=%d, ID=%d, Bounds=%+v\n",
-					i, cmd.CommandType, cmd.Id, cmd.BoundingBox)
+				// fmt.Printf("Command %d: Type=%d, ID=%d, Bounds=%+v\n",
+				// 	i, cmd.CommandType, cmd.Id, cmd.BoundingBox)
+				// fmt.Printf("Command %d: %s\n", i, cmd.String())
+				printCommand(i, cmd)
 			}
 
 			renderer.Render(commands)
@@ -154,4 +156,20 @@ func run(w *app.Window) error {
 			e.Frame(gtx.Ops)
 		}
 	}
+}
+
+func printCommand(i int, cmd clay.Clay_RenderCommand) {
+	fmt.Println("--------------------------------")
+	fmt.Printf("CommandType: %s\n", cmd.CommandType.String())
+	fmt.Printf("Id: %d\n", cmd.Id)
+	fmt.Printf("ZIndex: %d\n", cmd.ZIndex)
+	fmt.Printf("BoundingBox: %s\n", cmd.BoundingBox.String())
+	fmt.Printf("RenderData: %s\n", cmd.RenderData.String(cmd.CommandType))
+	fmt.Printf("UserData: %+v\n", cmd.UserData)
+
+	// commandJSON, err := json.MarshalIndent(cmd, "", "  ")
+	// if err != nil {
+	// 	log.Printf("error marshalling command: %v", err)
+	// }
+	// fmt.Printf("Command %d:\n%s\n", i, string(commandJSON))
 }

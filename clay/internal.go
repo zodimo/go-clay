@@ -1054,6 +1054,11 @@ func Clay__ElementIsOffscreen(boundingBox *Clay_BoundingBox) bool {
 }
 
 func Clay__AddRenderCommand(renderCommand Clay_RenderCommand) {
+	if renderCommand.CommandType == CLAY_RENDER_COMMAND_TYPE_NONE {
+		//The NONE type does not have defined expectations from the renderer, so we can safely ignore it
+		fmt.Println("Attempted to add a render command with a command type of NONE")
+		return
+	}
 	currentContext := Clay_GetCurrentContext()
 	if currentContext.RenderCommands.Length() < currentContext.RenderCommands.Capacity()-1 {
 		Clay__Array_Add(&currentContext.RenderCommands, renderCommand)

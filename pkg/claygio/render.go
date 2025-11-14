@@ -14,7 +14,7 @@ func Render(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
 	case clay.CLAY_RENDER_COMMAND_TYPE_BORDER:
 		RenderBorder(renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_TEXT:
-		RenderText(renderCommand)
+		RenderText(ops, renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_IMAGE:
 		RenderImage(renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
@@ -37,11 +37,8 @@ func RenderBorder(renderCommand clay.Clay_RenderCommand) op.Ops {
 	return ops
 }
 
-func RenderText(renderCommand clay.Clay_RenderCommand) op.Ops {
-	var ops op.Ops
-	spec := renderCommand.RenderData.Text
-	_ = spec
-	return ops
+func RenderText(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
+	RenderTextWithBounds(ops, renderCommand)
 }
 
 func RenderImage(renderCommand clay.Clay_RenderCommand) op.Ops {

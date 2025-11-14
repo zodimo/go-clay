@@ -54,3 +54,7 @@ type Clay_StringSlice struct {
 	Chars     []byte
 	BaseChars []byte
 }
+
+func (s Clay_StringSlice) String() string {
+	return string(s.Chars[:s.Length])
+}

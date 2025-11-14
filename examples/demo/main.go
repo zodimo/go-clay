@@ -86,7 +86,7 @@ func run(w *app.Window) error {
 				clay.Clay_ElementDeclaration{
 					Layout: clay.Clay_LayoutConfig{
 						Sizing: clay.Clay_Sizing{
-							Width:  clay.CLAY_SIZING_FIXED(700),
+							Width:  clay.CLAY_SIZING_PERCENT(1),
 							Height: clay.CLAY_SIZING_FIXED(300),
 						},
 						Padding:         clay.CLAY_PADDING_ALL(40),

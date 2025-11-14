@@ -143,7 +143,12 @@ func Clay__CalculateFinalLayout() {
 	Clay__Array_Reset(&dfsBuffer)
 	for layoutElementTreeRootIndex := int32(0); layoutElementTreeRootIndex < currentContext.LayoutElementTreeRoots.Length(); layoutElementTreeRootIndex++ {
 		layoutElementTreeRoot := Clay__Array_Get(&currentContext.LayoutElementTreeRoots, layoutElementTreeRootIndex)
-		if currentContext.TreeNodeVisited.Length() <= dfsBuffer.Length() {
+		//expect treeNodeVisited[] to be the same length as dfsBuffer
+		if currentContext.TreeNodeVisited.Length() < dfsBuffer.Length() {
+			panic("treeNodeVisited[] is not the same length as dfsBuffer")
+		}
+
+		if currentContext.TreeNodeVisited.Length() == dfsBuffer.Length() {
 			Clay__Array_Add(&currentContext.TreeNodeVisited, false)
 		} else {
 			Clay__Array_Set(&currentContext.TreeNodeVisited, dfsBuffer.Length(), false)
@@ -164,7 +169,10 @@ func Clay__CalculateFinalLayout() {
 			// Add the children to the DFS buffer (needs to be pushed in reverse so that stack traversal is in correct layout order)
 			for childIndex := int32(0); childIndex < int32(currentElement.ChildrenOrTextContent.Children.Length); childIndex++ {
 
-				if currentContext.TreeNodeVisited.Length() <= dfsBuffer.Length() {
+				if currentContext.TreeNodeVisited.Length() < dfsBuffer.Length() {
+					panic("treeNodeVisited[] is not the same length as dfsBuffer")
+				}
+				if currentContext.TreeNodeVisited.Length() == dfsBuffer.Length() {
 					Clay__Array_Add(&currentContext.TreeNodeVisited, false)
 				} else {
 					Clay__Array_Set(&currentContext.TreeNodeVisited, dfsBuffer.Length(), false)

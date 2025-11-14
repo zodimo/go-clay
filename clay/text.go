@@ -101,7 +101,7 @@ func DefaultTextElementConfig() *Clay_TextElementConfig {
 		FontId:        0,
 		FontSize:      16,
 		LetterSpacing: 0,
-		LineHeight:    16,
+		LineHeight:    0,
 	}
 }
 

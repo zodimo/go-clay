@@ -1,8 +1,6 @@
 package claygio
 
 import (
-	"fmt"
-
 	"gioui.org/font/gofont"
 	"gioui.org/io/system"
 	"gioui.org/text"
@@ -56,10 +54,6 @@ func (m *measurer) MeasureText(textToMeasureSlice clay.Clay_StringSlice, cfg *cl
 
 	textToMeasure := textToMeasureSlice.String()
 
-	if cfg.LineHeight <= 0 {
-		cfg.LineHeight = uint16(float32(cfg.FontSize) * m.options.LineHeightScale)
-	}
-
 	// Map clay config to Gioui's layout parameters.
 	params := text.Parameters{
 		// Use a default font face (e.g., the first in the gofont collection).
@@ -81,8 +75,12 @@ func (m *measurer) MeasureText(textToMeasureSlice clay.Clay_StringSlice, cfg *cl
 	m.shaper.LayoutString(params, textToMeasure)
 
 	var (
-		maxWidth  fixed.Int26_6 // The total width of the text (in 1/64th units).
-		lineCount int           // The number of lines.
+		lineStartX fixed.Int26_6
+		maxWidth   fixed.Int26_6 = 0
+		maxHeight  fixed.Int26_6 = 0
+		lineCount  int           = 1 // The number of lines.
+
+		isFirstGlyph = true
 	)
 
 	// Iterate through the shaped glyphs to find the dimensions.
@@ -91,9 +89,9 @@ func (m *measurer) MeasureText(textToMeasureSlice clay.Clay_StringSlice, cfg *cl
 		if !ok {
 			break
 		}
-
-		if lineCount == 0 || g.Flags&text.FlagParagraphStart != 0 {
-			lineCount++
+		if isFirstGlyph {
+			lineStartX = g.X
+			isFirstGlyph = false
 		}
 
 		// The width is the position of the glyph (g.X) plus its advance width (g.Advance).
@@ -101,23 +99,26 @@ func (m *measurer) MeasureText(textToMeasureSlice clay.Clay_StringSlice, cfg *cl
 		if currentLineEnd > maxWidth {
 			maxWidth = currentLineEnd
 		}
+		// fmt.Printf("g: %+v\n", g)
+		height := g.Ascent + g.Descent + g.Offset.Y
+		if height > maxHeight {
+			maxHeight = height
+		}
 	}
 
-	// Calculate the accurate line height based on PxPerEm and LineHeightScale.
-	// This is typically done outside of the loop.
-	lineHeightFixed := float64(cfg.LineHeight) * float64(m.options.LineHeightScale)
-
-	// Total height is the number of lines multiplied by the line height.
-	if lineCount == 0 {
-		lineCount = 1
+	scaledMaxHeight := fixed.Int26_6(maxHeight) * fixed.Int26_6(m.options.LineHeightScale)
+	if scaledMaxHeight <= 0 {
+		// fmt.Printf("scaledMaxHeight <= 0, using default: %d, lineHeightScale: %f\n", cfg.FontSize, m.options.LineHeightScale)
+		scaledMaxHeight = fixed.Int26_6(cfg.FontSize) * fixed.Int26_6(m.options.LineHeightScale)
 	}
-	totalHeightFixed := lineHeightFixed * float64(lineCount)
+	totalHeight := float64(scaledMaxHeight) * float64(lineCount)
+	totalWidth := float64(maxWidth - lineStartX)
 
-	fmt.Printf("maxWidth: %f, totalHeightFixed: %f\n", maxWidth, totalHeightFixed)
+	// fmt.Printf("totalWidth: %f, totalHeight: %f\n", totalWidth, totalHeight)
 
 	// Convert the dimensions from fixed-point (1/64th units) back to float32 (DP).
 	return clay.Clay_Dimensions{
-		Width:  float32(maxWidth),
-		Height: float32(totalHeightFixed),
+		Width:  float32(totalWidth),
+		Height: float32(totalHeight),
 	}
 }

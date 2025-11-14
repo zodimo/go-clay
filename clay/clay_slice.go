@@ -1,6 +1,8 @@
 package clay
 
 import (
+	"encoding/json"
+
 	"github.com/zodimo/clay-go/pkg/mem"
 )
 
@@ -57,4 +59,13 @@ type Clay_StringSlice struct {
 
 func (s Clay_StringSlice) String() string {
 	return string(s.Chars[:s.Length])
+}
+func (s Clay_StringSlice) MarshalJSON() ([]byte, error) {
+	marshalled := map[string]any{
+		"length":    s.Length,
+		"chars":     s.Chars,
+		"baseChars": s.BaseChars,
+		"string":    s.String(),
+	}
+	return json.Marshal(marshalled)
 }

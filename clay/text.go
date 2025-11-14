@@ -133,3 +133,9 @@ func TextWithUserData(userData interface{}) TextOption {
 		config.UserData = userData
 	}
 }
+
+func TextWithConfig(configFunc func(config *Clay_TextElementConfig)) TextOption {
+	return func(config *Clay_TextElementConfig) {
+		configFunc(config)
+	}
+}

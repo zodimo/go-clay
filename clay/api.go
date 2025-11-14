@@ -1,14 +1,5 @@
 package clay
 
-// #define CLAY_TEXT(text, textConfig) Clay__OpenTextElement(text, textConfig)
-func CLAY_TEXT(text string, options ...TextOption) {
-	textConfig := &Clay_TextElementConfig{}
-	for _, option := range options {
-		option(textConfig)
-	}
-	Clay__OpenTextElement(CLAY_STRING(text), textConfig)
-}
-
 type CLAY_CONTAINER_FUNC func(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration, content ...CLAY_CONTAINER_FUNC)
 
 type ClayContainer interface {
@@ -55,6 +46,20 @@ func CLAY_AUTO_ID(elementDeclaration Clay_ElementDeclaration, content ...ClayCon
 				content.Run()
 			}
 			Clay__CloseElement()
+		},
+	}
+}
+
+// #define CLAY_TEXT(text, textConfig) Clay__OpenTextElement(text, textConfig)
+
+func CLAY_TEXT(text string, options ...TextOption) ClayContainer {
+	textConfig := &Clay_TextElementConfig{}
+	for _, option := range options {
+		option(textConfig)
+	}
+	return &claContainer{
+		wrapper: func() {
+			Clay__OpenTextElement(CLAY_STRING(text), textConfig)
 		},
 	}
 }

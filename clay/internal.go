@@ -1073,9 +1073,21 @@ func Clay__OpenTextElement(text Clay_String, textConfig *Clay_TextElementConfig)
 	textElement := Clay__Array_Add[Clay_LayoutElement](&currentContext.LayoutElements, layoutElement)
 
 	if currentContext.OpenClipElementStack.Length() > 0 {
-		Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, Clay__Array_GetValue[int32](&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+		if currentContext.LayoutElementClipElementIds.Length() == 0 {
+			Clay__Array_Add(&currentContext.LayoutElementClipElementIds, Clay__Array_GetValue[int32](&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+		} else {
+			Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, Clay__Array_GetValue[int32](&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+		}
 	} else {
-		Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, 0)
+		if currentContext.LayoutElementClipElementIds.Length() == 0 {
+			Clay__Array_Add(&currentContext.LayoutElementClipElementIds, 0)
+		} else {
+			if currentContext.LayoutElementClipElementIds.Length() <= currentContext.LayoutElements.Length()-1 {
+				Clay__Array_Add(&currentContext.LayoutElementClipElementIds, 0)
+			} else {
+				Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, 0)
+			}
+		}
 	}
 
 	Clay__Array_Add(&currentContext.LayoutElementChildrenBuffer, currentContext.LayoutElements.Length()-1)

@@ -87,14 +87,16 @@ func Clay__CloseElement() {
 	topBottomPadding := float32(layoutConfig.Padding.Top + layoutConfig.Padding.Bottom)
 
 	// Attach children to the current open element
-
-	//attach to the unallocated slice at the end of the array from length to capacity
-
-	openLayoutElement.ChildrenOrTextContent.Children.Elements = mem.MArray_GetSlice(
-		&currentContext.LayoutElementChildren,
-		currentContext.LayoutElementChildren.Length(),
-		currentContext.LayoutElementChildren.Capacity(),
-	)
+	// Only set Children.Elements if the element actually has children
+	// This prevents overwriting the struct when the element has no children
+	if openLayoutElement.ChildrenOrTextContent.Children.Length > 0 {
+		//attach to the unallocated slice at the end of the array from length to capacity
+		openLayoutElement.ChildrenOrTextContent.Children.Elements = mem.MArray_GetSlice(
+			&currentContext.LayoutElementChildren,
+			currentContext.LayoutElementChildren.Length(),
+			currentContext.LayoutElementChildren.Capacity(),
+		)
+	}
 
 	if layoutConfig.LayoutDirection == CLAY_LEFT_TO_RIGHT {
 		openLayoutElement.Dimensions.Width = leftRightPadding
@@ -151,6 +153,8 @@ func Clay__CloseElement() {
 	}
 
 	// Resize the Elements slice to match the Length field after adding children
+	// Only modify Children.Elements if the element actually has children
+	// This prevents overwriting the struct when the element has no children (e.g., text elements)
 	if openLayoutElement.ChildrenOrTextContent.Children.Length > 0 {
 		if int32(openLayoutElement.ChildrenOrTextContent.Children.Length) <= currentContext.LayoutElementChildrenBuffer.Length() {
 			openLayoutElement.ChildrenOrTextContent.Children.Elements = openLayoutElement.ChildrenOrTextContent.Children.Elements[:openLayoutElement.ChildrenOrTextContent.Children.Length]
@@ -160,10 +164,10 @@ func Clay__CloseElement() {
 			openLayoutElement.ChildrenOrTextContent.Children.Elements = []int32{}
 			openLayoutElement.ChildrenOrTextContent.Children.Length = 0
 		}
-	} else {
-		// If there are no children, set Elements to an empty slice
-		openLayoutElement.ChildrenOrTextContent.Children.Elements = []int32{}
 	}
+	// Note: We don't set Elements to an empty slice when Length == 0 because:
+	// 1. Text elements use TextElementData instead of Children, and modifying Children might affect them
+	// 2. Container elements with no children will have Elements set when they get children
 
 	// Clamp element min and max width to the values configured in the layout
 	if layoutConfig.Sizing.Width.Type != CLAY__SIZING_TYPE_PERCENT {
@@ -1039,7 +1043,8 @@ func Clay__ConfigureOpenElementPtr(elementDeclaration *Clay_ElementDeclaration) 
 	}
 
 	// Set the element configs slice AFTER all configs have been attached
-	elementConfigs, err := mem.CreateSliceFromRange(&currentContext.ElementConfigs, elementConfigsStartLength, currentContext.ElementConfigs.Length())
+	elementConfigsEndLength := currentContext.ElementConfigs.Length()
+	elementConfigs, err := mem.CreateSliceFromRange(&currentContext.ElementConfigs, elementConfigsStartLength, elementConfigsEndLength-elementConfigsStartLength)
 	if err != nil {
 		panic(err)
 	}

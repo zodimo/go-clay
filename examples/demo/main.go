@@ -39,6 +39,8 @@ func run(w *app.Window) error {
 	var ops op.Ops
 	memory := make([]byte, 25*1024*1024)
 	arena, err := mem.NewArena(memory)
+
+	measurer := claygio.NewMeasurer()
 	if err != nil {
 		return err
 	}
@@ -68,7 +70,7 @@ func run(w *app.Window) error {
 					}, nil),
 				)
 				// clay.Clay_SetDebugModeEnabled(true)
-				clay.Clay_SetMeasureTextFunction(claygio.MeasureText, nil)
+				clay.Clay_SetMeasureTextFunction(measurer.MeasureText, nil)
 				clayReady = true
 			}
 
@@ -95,39 +97,39 @@ func run(w *app.Window) error {
 						ChildGap:        10,
 						ChildAlignment:  clay.Clay_ChildAlignment{X: clay.CLAY_ALIGN_X_CENTER, Y: clay.CLAY_ALIGN_Y_CENTER},
 					},
-					BackgroundColor: clay.Clay_Color{R: 0.9, G: 0.2, B: 0.2, A: 1},
+					BackgroundColor: clay.Clay_Color{R: 0.9, G: 0.2, B: 0.2, A: 1}, //dark grey for main container
 					CornerRadius:    clay.CLAY_CORNER_RADIUS(40),
 				},
-				clay.CLAY_TEXT("Hello, world!", clay.TextWithFontSize(24), clay.TextWithColor(clay.Clay_Color{R: 1, G: 1, B: 1, A: 1})),
-				// clay.CLAY(
-				// 	clay.CLAY_ID("inner"),
-				// 	clay.Clay_ElementDeclaration{
-				// 		Layout: clay.Clay_LayoutConfig{
-				// 			Sizing: clay.Clay_Sizing{
-				// 				Width:  clay.CLAY_SIZING_FIXED(200),
-				// 				Height: clay.CLAY_SIZING_FIXED(50),
-				// 			},
-				// 			Padding: clay.CLAY_PADDING_ALL(16),
-				// 		},
-				// 		BackgroundColor: clay.Clay_Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
-				// 		CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
-				// 	},
-				// ),
-				// clay.CLAY(
-				// 	clay.CLAY_ID("inner2"),
-				// 	clay.Clay_ElementDeclaration{
-				// 		Layout: clay.Clay_LayoutConfig{
-				// 			Sizing: clay.Clay_Sizing{
-				// 				Width:  clay.CLAY_SIZING_FIXED(200),
-				// 				Height: clay.CLAY_SIZING_FIXED(50),
-				// 			},
-				// 			Padding: clay.CLAY_PADDING_ALL(16),
-				// 		},
-				// 		BackgroundColor: clay.Clay_Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
-				// 		CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
-				// 	},
-				// 	clay.CLAY_TEXT("Hello, world!", clay.TextWithFontSize(24)),
-				// ),
+				clay.CLAY_TEXT("Hello, world!", clay.TextWithFontSize(48)),
+				clay.CLAY(
+					clay.CLAY_ID("inner"),
+					clay.Clay_ElementDeclaration{
+						Layout: clay.Clay_LayoutConfig{
+							Sizing: clay.Clay_Sizing{
+								Width:  clay.CLAY_SIZING_FIXED(200),
+								Height: clay.CLAY_SIZING_FIXED(50),
+							},
+							Padding: clay.CLAY_PADDING_ALL(16),
+						},
+						BackgroundColor: clay.Clay_Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
+						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
+					},
+				),
+				clay.CLAY(
+					clay.CLAY_ID("inner2"),
+					clay.Clay_ElementDeclaration{
+						Layout: clay.Clay_LayoutConfig{
+							Sizing: clay.Clay_Sizing{
+								Width:  clay.CLAY_SIZING_FIXED(200),
+								Height: clay.CLAY_SIZING_FIXED(50),
+							},
+							Padding: clay.CLAY_PADDING_ALL(16),
+						},
+						BackgroundColor: clay.Clay_Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
+						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
+					},
+					clay.CLAY_TEXT("Hello, world!", clay.TextWithFontSize(24)),
+				),
 			)
 
 			// clay.Clay__CloseElement()
@@ -178,6 +180,8 @@ func run(w *app.Window) error {
 
 			renderer.Render(commands)
 
+			// fmt.Printf("gtx.px: %+v\n", gtx.Dp())
+
 			// renderer.SetViewport(clay.BoundingBox{
 			// 	X: 0, Y: 0,
 			// 	Width:  float32(gtx.Constraints.Max.X),
@@ -186,7 +190,7 @@ func run(w *app.Window) error {
 			// if err := renderer.Render(commands); err != nil {
 			// 	log.Printf("render error: %v", err)
 			// }
-
+			// fmt.Printf("gtx.Ops: %+v\n", gtx.Ops)
 			e.Frame(gtx.Ops)
 		}
 	}

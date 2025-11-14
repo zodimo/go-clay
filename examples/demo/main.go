@@ -68,6 +68,7 @@ func run(w *app.Window) error {
 					}, nil),
 				)
 				// clay.Clay_SetDebugModeEnabled(true)
+				clay.Clay_SetMeasureTextFunction(claygio.MeasureText, nil)
 				clayReady = true
 			}
 

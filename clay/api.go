@@ -141,3 +141,15 @@ func CLAY_SIZING_PERCENT(percentOfParent float32) Clay_SizingAxis {
 		Size: Clay_SizingAxisSize{Percent: percentOfParent},
 	}
 }
+
+func Clay_SetMeasureTextFunction(measureTextFunction Clay__MeasureTextFunction, userData interface{}) {
+	currentContext := Clay_GetCurrentContext()
+	MeasureTextFunction = measureTextFunction
+	currentContext.MeasureTextUserData = userData
+}
+
+func Clay_SetQueryScrollOffsetFunction(queryScrollOffsetFunction Clay__QueryScrollOffsetFunction, userData interface{}) {
+	currentContext := Clay_GetCurrentContext()
+	QueryScrollOffsetFunction = queryScrollOffsetFunction
+	currentContext.QueryScrollOffsetUserData = userData
+}

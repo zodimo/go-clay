@@ -10,7 +10,10 @@ func Clay__CalculateFinalLayout() {
 	// Wrap text
 	for textElementIndex := int32(0); textElementIndex < currentContext.TextElementData.Length(); textElementIndex++ {
 		textElementData := Clay__Array_Get(&currentContext.TextElementData, textElementIndex)
-		wrappedLinesData := mem.MArray_GetSlice(&currentContext.WrappedTextLines, 0, currentContext.WrappedTextLines.Length())
+		// Initialize wrappedLines to point to the current end of the WrappedTextLines array
+		// This allows each text element to have its own slice that grows as lines are added
+		wrappedLinesStartIndex := currentContext.WrappedTextLines.Length()
+		wrappedLinesData := mem.MArray_GetSlice(&currentContext.WrappedTextLines, wrappedLinesStartIndex, wrappedLinesStartIndex)
 		wrappedLines := NewClay__Slice[Clay__WrappedTextLine](wrappedLinesData)
 		textElementData.WrappedLines = wrappedLines
 		containerElement := Clay__Array_Get(&currentContext.LayoutElements, textElementData.ElementIndex)
@@ -469,6 +472,10 @@ func Clay__CalculateFinalLayout() {
 					case CLAY__ELEMENT_CONFIG_TYPE_TEXT:
 						{
 							if !shouldRender {
+								break
+							}
+							if currentElement.ChildrenOrTextContent.TextElementData == nil {
+								// TextElementData should always be set for text elements, but add safety check
 								break
 							}
 							shouldRender = false

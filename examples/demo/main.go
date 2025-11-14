@@ -10,8 +10,8 @@ import (
 	"gioui.org/unit"
 
 	"github.com/zodimo/clay-go/clay"
+	"github.com/zodimo/clay-go/pkg/claygio"
 	"github.com/zodimo/clay-go/pkg/mem"
-	"github.com/zodimo/clay-go/renderers/gioui"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 }
 
 var (
-	renderer  *gioui.GioRenderer
+	renderer  *claygio.Renderer
 	clayReady bool
 )
 
@@ -51,7 +51,7 @@ func run(w *app.Window) error {
 			gtx := app.NewContext(&ops, e)
 
 			if renderer == nil {
-				renderer = gioui.NewRenderer(gtx.Ops)
+				renderer = claygio.NewRenderer(gtx.Ops)
 			}
 			if !clayReady {
 				clay.Clay_Initialize(

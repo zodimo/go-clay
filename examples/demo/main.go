@@ -86,16 +86,33 @@ func run(w *app.Window) error {
 				clay.Clay_ElementDeclaration{
 					Layout: clay.Clay_LayoutConfig{
 						Sizing: clay.Clay_Sizing{
-							Width:  clay.CLAY_SIZING_FIXED(400),
+							Width:  clay.CLAY_SIZING_FIXED(700),
 							Height: clay.CLAY_SIZING_FIXED(300),
 						},
-						Padding: clay.CLAY_PADDING_ALL(40),
+						Padding:         clay.CLAY_PADDING_ALL(40),
+						LayoutDirection: clay.CLAY_TOP_TO_BOTTOM,
+						ChildGap:        10,
+						ChildAlignment:  clay.Clay_ChildAlignment{X: clay.CLAY_ALIGN_X_CENTER, Y: clay.CLAY_ALIGN_Y_CENTER},
 					},
 					BackgroundColor: clay.Clay_Color{R: 0.9, G: 0.2, B: 0.2, A: 1},
 					CornerRadius:    clay.CLAY_CORNER_RADIUS(40),
 				},
 				clay.CLAY(
 					clay.CLAY_ID("inner"),
+					clay.Clay_ElementDeclaration{
+						Layout: clay.Clay_LayoutConfig{
+							Sizing: clay.Clay_Sizing{
+								Width:  clay.CLAY_SIZING_FIXED(200),
+								Height: clay.CLAY_SIZING_FIXED(50),
+							},
+							Padding: clay.CLAY_PADDING_ALL(16),
+						},
+						BackgroundColor: clay.Clay_Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
+						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
+					},
+				),
+				clay.CLAY(
+					clay.CLAY_ID("inner2"),
 					clay.Clay_ElementDeclaration{
 						Layout: clay.Clay_LayoutConfig{
 							Sizing: clay.Clay_Sizing{

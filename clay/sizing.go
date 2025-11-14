@@ -31,33 +31,3 @@ type Clay_SizingAxis struct {
 	Type Clay__SizingType
 	Size Clay_SizingAxisSize
 }
-
-func CLAY_SIZING_FIT(minMax Clay_SizingMinMax) Clay_SizingAxis {
-	return Clay_SizingAxis{
-		Type: CLAY__SIZING_TYPE_FIT,
-		Size: Clay_SizingAxisSize{MinMax: minMax},
-	}
-}
-
-func CLAY_SIZING_GROW(minMax Clay_SizingMinMax) Clay_SizingAxis {
-	return Clay_SizingAxis{
-		Type: CLAY__SIZING_TYPE_GROW,
-		Size: Clay_SizingAxisSize{MinMax: minMax},
-	}
-}
-func CLAY_SIZING_FIXED(fixedSize float32) Clay_SizingAxis {
-	return Clay_SizingAxis{
-		Type: CLAY__SIZING_TYPE_FIXED,
-		Size: Clay_SizingAxisSize{MinMax: Clay_SizingMinMax{Min: fixedSize, Max: fixedSize}},
-	}
-}
-
-func CLAY_SIZING_PERCENT(percentOfParent float32) Clay_SizingAxis {
-	if percentOfParent < 0 || percentOfParent > 1 {
-		panic("percentOfParent must be between 0 and 1")
-	}
-	return Clay_SizingAxis{
-		Type: CLAY__SIZING_TYPE_PERCENT,
-		Size: Clay_SizingAxisSize{Percent: percentOfParent},
-	}
-}

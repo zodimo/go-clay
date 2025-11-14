@@ -107,10 +107,32 @@ func CLAY_CORNER_RADIUS(radius float32) Clay_CornerRadius {
 	}
 }
 
-// #define CLAY_SIZING_FIT(...) (CLAY__INIT(Clay_SizingAxis) { .size = { .minMax = { __VA_ARGS__ } }, .type = CLAY__SIZING_TYPE_FIT })
+func CLAY_SIZING_FIT(minMax Clay_SizingMinMax) Clay_SizingAxis {
+	return Clay_SizingAxis{
+		Type: CLAY__SIZING_TYPE_FIT,
+		Size: Clay_SizingAxisSize{MinMax: minMax},
+	}
+}
 
-// #define CLAY_SIZING_GROW(...) (CLAY__INIT(Clay_SizingAxis) { .size = { .minMax = { __VA_ARGS__ } }, .type = CLAY__SIZING_TYPE_GROW })
+func CLAY_SIZING_GROW(minMax Clay_SizingMinMax) Clay_SizingAxis {
+	return Clay_SizingAxis{
+		Type: CLAY__SIZING_TYPE_GROW,
+		Size: Clay_SizingAxisSize{MinMax: minMax},
+	}
+}
+func CLAY_SIZING_FIXED(fixedSize float32) Clay_SizingAxis {
+	return Clay_SizingAxis{
+		Type: CLAY__SIZING_TYPE_FIXED,
+		Size: Clay_SizingAxisSize{MinMax: Clay_SizingMinMax{Min: fixedSize, Max: fixedSize}},
+	}
+}
 
-// #define CLAY_SIZING_FIXED(fixedSize) (CLAY__INIT(Clay_SizingAxis) { .size = { .minMax = { fixedSize, fixedSize } }, .type = CLAY__SIZING_TYPE_FIXED })
-
-// #define CLAY_SIZING_PERCENT(percentOfParent) (CLAY__INIT(Clay_SizingAxis) { .size = { .percent = (percentOfParent) }, .type = CLAY__SIZING_TYPE_PERCENT })
+func CLAY_SIZING_PERCENT(percentOfParent float32) Clay_SizingAxis {
+	if percentOfParent < 0 || percentOfParent > 1 {
+		panic("percentOfParent must be between 0 and 1")
+	}
+	return Clay_SizingAxis{
+		Type: CLAY__SIZING_TYPE_PERCENT,
+		Size: Clay_SizingAxisSize{Percent: percentOfParent},
+	}
+}

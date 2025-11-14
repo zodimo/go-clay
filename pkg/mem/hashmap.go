@@ -1,5 +1,7 @@
 package mem
 
+import "errors"
+
 type HashElementId struct {
 	Id       uint32
 	Offset   uint32
@@ -46,9 +48,9 @@ func HashNumber(offset uint32, seed uint32) HashElementId {
 	return HashElementId{Id: hash + 1, Offset: offset, BaseId: hash + 1, StringId: ""}
 }
 
-func AddHashMapItem[T any](htx *HashMapContext[T], elementId HashElementId, element *T) *HashMapItem[T] {
+func AddHashMapItem[T any](htx *HashMapContext[T], elementId HashElementId, element *T) (*HashMapItem[T], error) {
 	if htx.HashMapInternal.Length() == htx.HashMapInternal.Capacity()-1 {
-		return nil
+		return nil, errors.New("hashmap is full")
 	}
 	item := HashMapItem[T]{
 		ElementId:  elementId,
@@ -72,9 +74,9 @@ func AddHashMapItem[T any](htx *HashMapContext[T], elementId HashElementId, elem
 				hashItem.Generation = htx.Generation + 1
 				hashItem.Element = element
 			} else { // Multiple collisions this frame - two elements have the same ID
-				panic("Multiple collisions this frame - two elements have the same ID.")
+				return nil, errors.New("multiple collisions this frame - two elements have the same ID")
 			}
-			return hashItem
+			return hashItem, nil
 		}
 		hashItemPrevious = hashItemIndex
 		hashItemIndex = hashItem.NextIndex
@@ -86,7 +88,7 @@ func AddHashMapItem[T any](htx *HashMapContext[T], elementId HashElementId, elem
 	} else {
 		MArray_Set(&htx.HashMap, hashBucket, htx.HashMapInternal.Length()-1)
 	}
-	return hashItem
+	return hashItem, nil
 }
 
 type HashMapItem[T any] struct {
@@ -94,4 +96,20 @@ type HashMapItem[T any] struct {
 	Element    *T
 	NextIndex  int32
 	Generation uint32
+}
+
+func GetHashMapItem[T any](htx *HashMapContext[T], id uint32) (*HashMapItem[T], bool) {
+	// Perform modulo with uint32 first to avoid negative results, then cast to int32
+	hashBucket := int32(id % uint32(htx.HashMap.Capacity()))
+
+	elementIndex := MArray_GetValue(&htx.HashMap, hashBucket)
+	for elementIndex != -1 {
+		hashEntry := MArray_Get[HashMapItem[T]](&htx.HashMapInternal, elementIndex)
+		if hashEntry.ElementId.Id == id {
+			return hashEntry, true
+		}
+		elementIndex = hashEntry.NextIndex
+	}
+
+	return nil, false
 }

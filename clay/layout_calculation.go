@@ -1,6 +1,8 @@
 package clay
 
-import "github.com/zodimo/clay-go/pkg/mem"
+import (
+	"github.com/zodimo/clay-go/pkg/mem"
+)
 
 func Clay__CalculateFinalLayout() {
 	currentContext := Clay_GetCurrentContext()
@@ -242,69 +244,83 @@ func Clay__CalculateFinalLayout() {
 			targetAttachPosition := Clay_Vector2{}
 			switch config.AttachPoints.Parent {
 			case CLAY_ATTACH_POINT_LEFT_TOP:
+				fallthrough
 			case CLAY_ATTACH_POINT_LEFT_CENTER:
+				fallthrough
 			case CLAY_ATTACH_POINT_LEFT_BOTTOM:
 				targetAttachPosition.X = parentBoundingBox.X
-				break
 			case CLAY_ATTACH_POINT_CENTER_TOP:
+				fallthrough
 			case CLAY_ATTACH_POINT_CENTER_CENTER:
+				fallthrough
 			case CLAY_ATTACH_POINT_CENTER_BOTTOM:
 				targetAttachPosition.X = parentBoundingBox.X + (parentBoundingBox.Width / 2)
-				break
 			case CLAY_ATTACH_POINT_RIGHT_TOP:
+				fallthrough
 			case CLAY_ATTACH_POINT_RIGHT_CENTER:
+				fallthrough
 			case CLAY_ATTACH_POINT_RIGHT_BOTTOM:
 				targetAttachPosition.X = parentBoundingBox.X + parentBoundingBox.Width
-				break
 			}
 			switch config.AttachPoints.Element {
 			case CLAY_ATTACH_POINT_LEFT_TOP:
+				fallthrough
 			case CLAY_ATTACH_POINT_LEFT_CENTER:
+				fallthrough
 			case CLAY_ATTACH_POINT_LEFT_BOTTOM:
-				break
+				//do not fallthrough
 			case CLAY_ATTACH_POINT_CENTER_TOP:
+				fallthrough
 			case CLAY_ATTACH_POINT_CENTER_CENTER:
+				fallthrough
 			case CLAY_ATTACH_POINT_CENTER_BOTTOM:
 				targetAttachPosition.X -= (rootDimensions.Width / 2)
-				break
 			case CLAY_ATTACH_POINT_RIGHT_TOP:
+				fallthrough
 			case CLAY_ATTACH_POINT_RIGHT_CENTER:
+				fallthrough
 			case CLAY_ATTACH_POINT_RIGHT_BOTTOM:
 				targetAttachPosition.X -= rootDimensions.Width
-				break
 			}
 			switch config.AttachPoints.Parent { // I know I could merge the x and y switch statements, but this is easier to read
 			case CLAY_ATTACH_POINT_LEFT_TOP:
+				fallthrough
 			case CLAY_ATTACH_POINT_RIGHT_TOP:
+				fallthrough
 			case CLAY_ATTACH_POINT_CENTER_TOP:
 				targetAttachPosition.Y = parentBoundingBox.Y
-				break
 			case CLAY_ATTACH_POINT_LEFT_CENTER:
+				fallthrough
 			case CLAY_ATTACH_POINT_CENTER_CENTER:
+				fallthrough
 			case CLAY_ATTACH_POINT_RIGHT_CENTER:
 				targetAttachPosition.Y = parentBoundingBox.Y + (parentBoundingBox.Height / 2)
-				break
 			case CLAY_ATTACH_POINT_LEFT_BOTTOM:
+				fallthrough
 			case CLAY_ATTACH_POINT_CENTER_BOTTOM:
+				fallthrough
 			case CLAY_ATTACH_POINT_RIGHT_BOTTOM:
 				targetAttachPosition.Y = parentBoundingBox.Y + parentBoundingBox.Height
-				break
 			}
 			switch config.AttachPoints.Element {
 			case CLAY_ATTACH_POINT_LEFT_TOP:
+				fallthrough
 			case CLAY_ATTACH_POINT_RIGHT_TOP:
+				fallthrough
 			case CLAY_ATTACH_POINT_CENTER_TOP:
-				break
+				//do not fallthrough
 			case CLAY_ATTACH_POINT_LEFT_CENTER:
+				fallthrough
 			case CLAY_ATTACH_POINT_CENTER_CENTER:
+				fallthrough
 			case CLAY_ATTACH_POINT_RIGHT_CENTER:
 				targetAttachPosition.Y -= (rootDimensions.Height / 2)
-				break
 			case CLAY_ATTACH_POINT_LEFT_BOTTOM:
+				fallthrough
 			case CLAY_ATTACH_POINT_CENTER_BOTTOM:
+				fallthrough
 			case CLAY_ATTACH_POINT_RIGHT_BOTTOM:
 				targetAttachPosition.Y -= rootDimensions.Height
-				break
 			}
 			targetAttachPosition.X += config.Offset.X
 			targetAttachPosition.Y += config.Offset.Y
@@ -344,7 +360,7 @@ func Clay__CalculateFinalLayout() {
 
 		Clay__Array_Set(&currentContext.TreeNodeVisited, 0, false)
 		for dfsBuffer.Length() > 0 {
-			currentElementTreeNode := Clay__Array_GetValue(&dfsBuffer, dfsBuffer.Length()-1)
+			currentElementTreeNode := Clay__Array_Get(&dfsBuffer, dfsBuffer.Length()-1)
 			currentElement := currentElementTreeNode.LayoutElement
 			layoutConfig := currentElement.LayoutConfig
 			scrollOffset := Clay_Vector2{}
@@ -434,124 +450,107 @@ func Clay__CalculateFinalLayout() {
 					shouldRender := !offscreen
 					switch elementConfig.Type {
 					case CLAY__ELEMENT_CONFIG_TYPE_ASPECT:
-						shouldRender = false
-						break
+						fallthrough
 					case CLAY__ELEMENT_CONFIG_TYPE_FLOATING:
-						shouldRender = false
-						break
+						fallthrough
 					case CLAY__ELEMENT_CONFIG_TYPE_SHARED:
-						shouldRender = false
-						break
+						fallthrough
 					case CLAY__ELEMENT_CONFIG_TYPE_BORDER:
 						shouldRender = false
-						break
 					case CLAY__ELEMENT_CONFIG_TYPE_CLIP:
-						{
-							renderCommand.CommandType = CLAY_RENDER_COMMAND_TYPE_SCISSOR_START
-							renderCommand.RenderData = Clay_RenderData{
-								Clip: Clay_ClipRenderData{
-									Horizontal: elementConfig.Config.ClipElementConfig.Horizontal,
-									Vertical:   elementConfig.Config.ClipElementConfig.Vertical,
-								},
-							}
-							break
+						renderCommand.CommandType = CLAY_RENDER_COMMAND_TYPE_SCISSOR_START
+						renderCommand.RenderData = Clay_RenderData{
+							Clip: Clay_ClipRenderData{
+								Horizontal: elementConfig.Config.ClipElementConfig.Horizontal,
+								Vertical:   elementConfig.Config.ClipElementConfig.Vertical,
+							},
 						}
+
 					case CLAY__ELEMENT_CONFIG_TYPE_IMAGE:
-						{
-							renderCommand.CommandType = CLAY_RENDER_COMMAND_TYPE_IMAGE
-							renderCommand.RenderData = Clay_RenderData{
-								Image: Clay_ImageRenderData{
-									BackgroundColor: sharedConfig.BackgroundColor,
-									CornerRadius:    sharedConfig.CornerRadius,
-									ImageData:       elementConfig.Config.ImageElementConfig.ImageData,
-								},
-							}
-							emitRectangle = false
+						renderCommand.CommandType = CLAY_RENDER_COMMAND_TYPE_IMAGE
+						renderCommand.RenderData = Clay_RenderData{
+							Image: Clay_ImageRenderData{
+								BackgroundColor: sharedConfig.BackgroundColor,
+								CornerRadius:    sharedConfig.CornerRadius,
+								ImageData:       elementConfig.Config.ImageElementConfig.ImageData,
+							},
+						}
+						emitRectangle = false
+
+					case CLAY__ELEMENT_CONFIG_TYPE_TEXT:
+						if !shouldRender {
 							break
 						}
-					case CLAY__ELEMENT_CONFIG_TYPE_TEXT:
-						{
-							if !shouldRender {
-								break
-							}
-							if currentElement.ChildrenOrTextContent.TextElementData == nil {
-								// TextElementData should always be set for text elements, but add safety check
-								break
-							}
-							shouldRender = false
-							configUnion := elementConfig.Config
-							textElementConfig := configUnion.TextElementConfig
-							naturalLineHeight := currentElement.ChildrenOrTextContent.TextElementData.PreferredDimensions.Height
+						if currentElement.ChildrenOrTextContent.TextElementData == nil {
+							panic("TextElementData not set")
+						}
+						shouldRender = false
+						configUnion := elementConfig.Config
+						textElementConfig := configUnion.TextElementConfig
+						naturalLineHeight := currentElement.ChildrenOrTextContent.TextElementData.PreferredDimensions.Height
 
-							var finalLineHeight float32
-							if textElementConfig.LineHeight > 0 {
-								finalLineHeight = float32(textElementConfig.LineHeight)
-							} else {
-								finalLineHeight = naturalLineHeight
-							}
-							lineHeightOffset := (finalLineHeight - naturalLineHeight) / 2
-							yPosition := lineHeightOffset
-							for lineIndex := int32(0); lineIndex < currentElement.ChildrenOrTextContent.TextElementData.WrappedLines.Length(); lineIndex++ {
-								wrappedLine := Clay__Slice_Get(&currentElement.ChildrenOrTextContent.TextElementData.WrappedLines, lineIndex)
-								if wrappedLine.Line.Length == 0 {
-									yPosition += finalLineHeight
-									continue
-								}
-								offset := (currentElementBoundingBox.Width - wrappedLine.Dimensions.Width)
-								if textElementConfig.TextAlignment == CLAY_TEXT_ALIGN_LEFT {
-									offset = 0
-								}
-								if textElementConfig.TextAlignment == CLAY_TEXT_ALIGN_CENTER {
-									offset /= 2
-								}
-								Clay__AddRenderCommand(Clay_RenderCommand{
-									BoundingBox: Clay_BoundingBox{
-										X:      currentElementBoundingBox.X + offset,
-										Y:      currentElementBoundingBox.Y + yPosition,
-										Width:  wrappedLine.Dimensions.Width,
-										Height: wrappedLine.Dimensions.Height,
-									},
-									RenderData: Clay_RenderData{
-										Text: Clay_TextRenderData{
-											StringContents: Clay_StringSlice{
-												Length:    wrappedLine.Line.Length,
-												Chars:     wrappedLine.Line.Chars,
-												BaseChars: currentElement.ChildrenOrTextContent.TextElementData.Text.Chars,
-											},
-											TextColor:     textElementConfig.TextColor,
-											FontId:        textElementConfig.FontId,
-											FontSize:      textElementConfig.FontSize,
-											LetterSpacing: textElementConfig.LetterSpacing,
-											LineHeight:    textElementConfig.LineHeight,
-										}},
-									UserData:    textElementConfig.UserData,
-									Id:          Clay__HashNumber(uint32(lineIndex), currentElement.Id).Id,
-									ZIndex:      root.ZIndex,
-									CommandType: CLAY_RENDER_COMMAND_TYPE_TEXT,
-								})
+						var finalLineHeight float32
+						if textElementConfig.LineHeight > 0 {
+							finalLineHeight = float32(textElementConfig.LineHeight)
+						} else {
+							finalLineHeight = naturalLineHeight
+						}
+						lineHeightOffset := (finalLineHeight - naturalLineHeight) / 2
+						yPosition := lineHeightOffset
+						for lineIndex := int32(0); lineIndex < currentElement.ChildrenOrTextContent.TextElementData.WrappedLines.Length(); lineIndex++ {
+							wrappedLine := Clay__Slice_Get(&currentElement.ChildrenOrTextContent.TextElementData.WrappedLines, lineIndex)
+							if wrappedLine.Line.Length == 0 {
 								yPosition += finalLineHeight
-
-								if !currentContext.DisableCulling && (currentElementBoundingBox.Y+yPosition > currentContext.LayoutDimensions.Height) {
-									break
-								}
+								continue
 							}
-							break
+							offset := (currentElementBoundingBox.Width - wrappedLine.Dimensions.Width)
+							if textElementConfig.TextAlignment == CLAY_TEXT_ALIGN_LEFT {
+								offset = 0
+							}
+							if textElementConfig.TextAlignment == CLAY_TEXT_ALIGN_CENTER {
+								offset /= 2
+							}
+							Clay__AddRenderCommand(Clay_RenderCommand{
+								BoundingBox: Clay_BoundingBox{
+									X:      currentElementBoundingBox.X + offset,
+									Y:      currentElementBoundingBox.Y + yPosition,
+									Width:  wrappedLine.Dimensions.Width,
+									Height: wrappedLine.Dimensions.Height,
+								},
+								RenderData: Clay_RenderData{
+									Text: Clay_TextRenderData{
+										StringContents: Clay_StringSlice{
+											Length:    wrappedLine.Line.Length,
+											Chars:     wrappedLine.Line.Chars,
+											BaseChars: currentElement.ChildrenOrTextContent.TextElementData.Text.Chars,
+										},
+										TextColor:     textElementConfig.TextColor,
+										FontId:        textElementConfig.FontId,
+										FontSize:      textElementConfig.FontSize,
+										LetterSpacing: textElementConfig.LetterSpacing,
+										LineHeight:    textElementConfig.LineHeight,
+									}},
+								UserData:    textElementConfig.UserData,
+								Id:          Clay__HashNumber(uint32(lineIndex), currentElement.Id).Id,
+								ZIndex:      root.ZIndex,
+								CommandType: CLAY_RENDER_COMMAND_TYPE_TEXT,
+							})
+							yPosition += finalLineHeight
+
+							if !currentContext.DisableCulling && (currentElementBoundingBox.Y+yPosition > currentContext.LayoutDimensions.Height) {
+								break
+							}
 						}
 					case CLAY__ELEMENT_CONFIG_TYPE_CUSTOM:
-						{
-							renderCommand.CommandType = CLAY_RENDER_COMMAND_TYPE_CUSTOM
-							renderCommand.RenderData = Clay_RenderData{
-								Custom: Clay_CustomRenderData{
-									BackgroundColor: sharedConfig.BackgroundColor,
-									CornerRadius:    sharedConfig.CornerRadius,
-									CustomData:      elementConfig.Config.CustomElementConfig.CustomData,
-								},
-							}
-							emitRectangle = false
-							break
+						renderCommand.CommandType = CLAY_RENDER_COMMAND_TYPE_CUSTOM
+						renderCommand.RenderData = Clay_RenderData{
+							Custom: Clay_CustomRenderData{
+								BackgroundColor: sharedConfig.BackgroundColor,
+								CornerRadius:    sharedConfig.CornerRadius,
+								CustomData:      elementConfig.Config.CustomElementConfig.CustomData,
+							},
 						}
-					default:
-						break
+						emitRectangle = false
 					}
 					if shouldRender {
 						Clay__AddRenderCommand(renderCommand)
@@ -595,9 +594,6 @@ func Clay__CalculateFinalLayout() {
 							extraSpace = 0
 						case CLAY_ALIGN_X_CENTER:
 							extraSpace /= 2
-							break
-						default:
-							break
 						}
 						currentElementTreeNode.NextChildOffset.X += extraSpace
 						extraSpace = CLAY__MAX(0, extraSpace)
@@ -612,12 +608,9 @@ func Clay__CalculateFinalLayout() {
 						switch layoutConfig.ChildAlignment.Y {
 						case CLAY_ALIGN_Y_TOP:
 							extraSpace = 0
-							break
 						case CLAY_ALIGN_Y_CENTER:
 							extraSpace /= 2
-							break
-						default:
-							break
+
 						}
 						extraSpace = CLAY__MAX(0, extraSpace)
 						currentElementTreeNode.NextChildOffset.Y += extraSpace
@@ -757,26 +750,22 @@ func Clay__CalculateFinalLayout() {
 						whiteSpaceAroundChild := currentElement.Dimensions.Height - float32(layoutConfig.Padding.Top+layoutConfig.Padding.Bottom) - childElement.Dimensions.Height
 						switch layoutConfig.ChildAlignment.Y {
 						case CLAY_ALIGN_Y_TOP:
-							break
+							//do not fallthrough
 						case CLAY_ALIGN_Y_CENTER:
 							currentElementTreeNode.NextChildOffset.Y += whiteSpaceAroundChild / 2
-							break
 						case CLAY_ALIGN_Y_BOTTOM:
 							currentElementTreeNode.NextChildOffset.Y += whiteSpaceAroundChild
-							break
 						}
 					} else {
 						currentElementTreeNode.NextChildOffset.X = float32(currentElement.LayoutConfig.Padding.Left)
 						whiteSpaceAroundChild := currentElement.Dimensions.Width - float32(layoutConfig.Padding.Left+layoutConfig.Padding.Right) - childElement.Dimensions.Width
 						switch layoutConfig.ChildAlignment.X {
 						case CLAY_ALIGN_X_LEFT:
-							break
+							//do not fallthrough
 						case CLAY_ALIGN_X_CENTER:
 							currentElementTreeNode.NextChildOffset.X += whiteSpaceAroundChild / 2
-							break
 						case CLAY_ALIGN_X_RIGHT:
 							currentElementTreeNode.NextChildOffset.X += whiteSpaceAroundChild
-							break
 						}
 					}
 

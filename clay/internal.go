@@ -1267,19 +1267,36 @@ func Clay__OpenTextElement(text Clay_String, textConfig *Clay_TextElementConfig)
 	textElement := Clay__Array_Add[Clay_LayoutElement](&currentContext.LayoutElements, layoutElement)
 
 	if currentContext.OpenClipElementStack.Length() > 0 {
+
+		if currentContext.LayoutElementClipElementIds.Length() != currentContext.LayoutElements.Length() {
+			panic("LayoutElementClipElementIds length does not match LayoutElements length")
+		}
 		if currentContext.LayoutElementClipElementIds.Length() == 0 {
-			Clay__Array_Add(&currentContext.LayoutElementClipElementIds, Clay__Array_GetValue[int32](&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+			Clay__Array_Add(
+				&currentContext.LayoutElementClipElementIds,
+				Clay__Array_GetValue[int32](&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1),
+			)
 		} else {
-			Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, Clay__Array_GetValue[int32](&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+			Clay__Array_Set(
+				&currentContext.LayoutElementClipElementIds,
+				currentContext.LayoutElements.Length()-1,
+				Clay__Array_GetValue[int32](&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1),
+			)
 		}
 	} else {
+		if currentContext.LayoutElementClipElementIds.Length() != currentContext.LayoutElements.Length()-1 {
+			fmt.Printf("LayoutElementClipElementIds length : %d, LayoutElements length : %d\n", currentContext.LayoutElementClipElementIds.Length(), currentContext.LayoutElements.Length())
+			panic("LayoutElementClipElementIds length does not match LayoutElements length")
+		}
 		if currentContext.LayoutElementClipElementIds.Length() == 0 {
 			Clay__Array_Add(&currentContext.LayoutElementClipElementIds, 0)
 		} else {
-			if currentContext.LayoutElementClipElementIds.Length() <= currentContext.LayoutElements.Length()-1 {
+			if currentContext.LayoutElementClipElementIds.Length() == currentContext.LayoutElements.Length()-1 {
 				Clay__Array_Add(&currentContext.LayoutElementClipElementIds, 0)
-			} else {
+			} else if currentContext.LayoutElementClipElementIds.Length() == currentContext.LayoutElements.Length() {
 				Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, 0)
+			} else {
+				panic("LayoutElementClipElementIds length does not match LayoutElements length")
 			}
 		}
 	}
@@ -1327,9 +1344,10 @@ func Clay__OpenTextElement(text Clay_String, textConfig *Clay_TextElementConfig)
 	})
 	if config != nil {
 		configIndex := currentContext.ElementConfigs.Length() - 1
-
 		segmentView := mem.MArray_GetSlice(&currentContext.ElementConfigs, configIndex, configIndex+1)
 		textElement.ElementConfigs = NewClay__Slice[Clay_ElementConfig](segmentView)
+	} else {
+		panic("config is nil")
 	}
 	textElement.LayoutConfig = &Clay_LayoutConfig{}
 	parentElement.ChildrenOrTextContent.Children.Length++

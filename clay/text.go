@@ -51,6 +51,17 @@ type Clay_TextElementConfig struct {
 	TextAlignment Clay_TextAlignment
 }
 
+type Clay__MeasureTextCacheItem struct {
+	UnwrappedDimensions     Clay_Dimensions
+	MeasuredWordsStartIndex int32
+	MinWidth                float32
+	ContainsNewlines        bool
+	// Hash map data
+	Id         uint32
+	NextIndex  int32
+	Generation uint32
+}
+
 // Note: Clay_String is not guaranteed to be null terminated. It may be if created from a literal C string,
 // but it is also used to represent slices.
 type Clay_String struct {

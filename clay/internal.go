@@ -1057,7 +1057,201 @@ func Clay__GetOpenLayoutElement() *Clay_LayoutElement {
 
 }
 func Clay__MeasureTextCached(text *Clay_String, textConfig *Clay_TextElementConfig) *Clay__MeasureTextCacheItem {
-	panic("not implemented")
+	currentContext := Clay_GetCurrentContext()
+	if MeasureTextFunction == nil {
+		if !currentContext.BooleanWarnings.TextMeasurementFunctionNotSet {
+			currentContext.BooleanWarnings.TextMeasurementFunctionNotSet = true
+			currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
+				ErrorType: CLAY_ERROR_TYPE_TEXT_MEASUREMENT_FUNCTION_NOT_PROVIDED,
+				ErrorText: CLAY_STRING("Clay's internal MeasureText function is null. You may have forgotten to call Clay_SetMeasureTextFunction(), or passed a NULL function pointer by mistake."),
+				UserData:  currentContext.ErrorHandler.UserData})
+		}
+		return &Clay__MeasureTextCacheItem_DEFAULT
+	}
+
+	id := Clay__HashStringContentsWithConfig(text, textConfig)
+	hashBucket := int32(id % (uint32(currentContext.MaxMeasureTextCacheWordCount) / 32))
+	elementIndexPrevious := int32(0)
+	elementIndex := Clay__Array_GetValue[int32](&currentContext.MeasureTextHashMap, hashBucket)
+	for elementIndex != 0 {
+		hashEntry := Clay__Array_Get[Clay__MeasureTextCacheItem](&currentContext.MeasureTextHashMapInternal, elementIndex)
+		if hashEntry.Id == id {
+			hashEntry.Generation = currentContext.Generation
+			return hashEntry
+		}
+		// This element hasn't been seen in a few frames, delete the hash map item
+		if currentContext.Generation-hashEntry.Generation > 2 {
+			// Add all the measured words that were included in this measurement to the freelist
+			nextWordIndex := hashEntry.MeasuredWordsStartIndex
+			for nextWordIndex != -1 {
+				measuredWord := Clay__Array_Get[Clay__MeasuredWord](&currentContext.MeasuredWords, nextWordIndex)
+				Clay__Array_Add(&currentContext.MeasuredWordsFreeList, nextWordIndex)
+				nextWordIndex = measuredWord.Next
+			}
+
+			nextIndex := hashEntry.NextIndex
+			Clay__Array_Set(&currentContext.MeasureTextHashMapInternal, elementIndex, Clay__MeasureTextCacheItem{MeasuredWordsStartIndex: -1}) //@TODO review if -1 is correct
+			Clay__Array_Add(&currentContext.MeasureTextHashMapInternalFreeList, elementIndex)
+			if elementIndexPrevious == 0 {
+				Clay__Array_Set(&currentContext.MeasureTextHashMap, hashBucket, nextIndex)
+			} else {
+				previousHashEntry := Clay__Array_Get[Clay__MeasureTextCacheItem](&currentContext.MeasureTextHashMapInternal, elementIndexPrevious)
+				previousHashEntry.NextIndex = nextIndex
+			}
+			elementIndex = nextIndex
+		} else {
+			elementIndexPrevious = elementIndex
+			elementIndex = hashEntry.NextIndex
+		}
+	}
+
+	newItemIndex := int32(0)
+	newCacheItem := Clay__MeasureTextCacheItem{MeasuredWordsStartIndex: -1, Id: id, Generation: currentContext.Generation}
+	measured := new(Clay__MeasureTextCacheItem)
+	if currentContext.MeasureTextHashMapInternalFreeList.Length() > 0 {
+		newItemIndex = Clay__Array_GetValue[int32](&currentContext.MeasureTextHashMapInternalFreeList, currentContext.MeasureTextHashMapInternalFreeList.Length()-1)
+		Clay__Array_Shrink(&currentContext.MeasureTextHashMapInternalFreeList, 1)
+		Clay__Array_Set(&currentContext.MeasureTextHashMapInternal, newItemIndex, newCacheItem)
+		measured = Clay__Array_Get[Clay__MeasureTextCacheItem](&currentContext.MeasureTextHashMapInternal, newItemIndex)
+	} else {
+		if currentContext.MeasureTextHashMapInternal.Length() == currentContext.MeasureTextHashMapInternal.Capacity()-1 {
+			if !currentContext.BooleanWarnings.MaxTextMeasureCacheExceeded {
+				currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
+					ErrorType: CLAY_ERROR_TYPE_ELEMENTS_CAPACITY_EXCEEDED,
+					ErrorText: CLAY_STRING("Clay ran out of capacity while attempting to measure text elements. Try using Clay_SetMaxElementCount() with a higher value."),
+					UserData:  currentContext.ErrorHandler.UserData})
+				currentContext.BooleanWarnings.MaxTextMeasureCacheExceeded = true
+			}
+			return &Clay__MeasureTextCacheItem_DEFAULT
+		}
+		measured = Clay__Array_Add(&currentContext.MeasureTextHashMapInternal, newCacheItem)
+		newItemIndex = currentContext.MeasureTextHashMapInternal.Length() - 1
+	}
+
+	start := int32(0)
+	end := int32(0)
+	lineWidth := float32(0)
+	measuredWidth := float32(0)
+	measuredHeight := float32(0)
+	spaceWidth := Clay__MeasureText(Clay_StringSlice{
+		Length:    1,
+		Chars:     CLAY__SPACECHAR.Chars,
+		BaseChars: CLAY__SPACECHAR.Chars,
+	},
+		textConfig,
+		currentContext.MeasureTextUserData,
+	).Width
+	tempWord := Clay__MeasuredWord{Next: -1}
+	previousWord := &tempWord
+	for end < text.Length {
+		if currentContext.MeasuredWords.Length() == currentContext.MeasuredWords.Capacity()-1 {
+			if !currentContext.BooleanWarnings.MaxTextMeasureCacheExceeded {
+				currentContext.ErrorHandler.ErrorHandlerFunction(Clay_ErrorData{
+					ErrorType: CLAY_ERROR_TYPE_TEXT_MEASUREMENT_CAPACITY_EXCEEDED,
+					ErrorText: CLAY_STRING("Clay has run out of space in it's internal text measurement cache. Try using Clay_SetMaxMeasureTextCacheWordCount() (default 16384, with 1 unit storing 1 measured word)."),
+					UserData:  currentContext.ErrorHandler.UserData,
+				})
+				currentContext.BooleanWarnings.MaxTextMeasureCacheExceeded = true
+			}
+			return &Clay__MeasureTextCacheItem_DEFAULT
+		}
+		current := text.Chars[end]
+		if current == ' ' || current == '\n' {
+			length := end - start
+			dimensions := Clay_Dimensions{}
+			if length > 0 {
+				dimensions = Clay__MeasureText(Clay_StringSlice{
+					Length:    length,
+					Chars:     text.Chars[start:],
+					BaseChars: text.Chars,
+				},
+					textConfig,
+					currentContext.MeasureTextUserData,
+				)
+			}
+			measured.MinWidth = CLAY__MAX(dimensions.Width, measured.MinWidth)
+			measuredHeight = CLAY__MAX(measuredHeight, dimensions.Height)
+			if current == ' ' {
+				dimensions.Width += spaceWidth
+				previousWord = Clay__AddMeasuredWord(Clay__MeasuredWord{
+					StartOffset: start,
+					Length:      length + 1,
+					Width:       dimensions.Width,
+					Next:        -1,
+				}, previousWord)
+				lineWidth += dimensions.Width
+			}
+			if current == '\n' {
+				if length > 0 {
+					previousWord = Clay__AddMeasuredWord(Clay__MeasuredWord{
+						StartOffset: start,
+						Length:      length,
+						Width:       dimensions.Width,
+						Next:        -1,
+					}, previousWord)
+				}
+				previousWord = Clay__AddMeasuredWord(Clay__MeasuredWord{
+					StartOffset: end + 1,
+					Length:      0,
+					Width:       0,
+					Next:        -1,
+				}, previousWord)
+				lineWidth += dimensions.Width
+				measuredWidth = CLAY__MAX(lineWidth, measuredWidth)
+				measured.ContainsNewlines = true
+				lineWidth = 0
+			}
+			start = end + 1
+		}
+		end++
+	}
+
+	if end-start > 0 {
+		dimensions := Clay__MeasureText(Clay_StringSlice{
+			Length:    end - start,
+			Chars:     text.Chars[start:],
+			BaseChars: text.Chars,
+		},
+			textConfig,
+			currentContext.MeasureTextUserData,
+		)
+		Clay__AddMeasuredWord(Clay__MeasuredWord{
+			StartOffset: start,
+			Length:      end - start,
+			Width:       dimensions.Width,
+			Next:        -1,
+		}, previousWord)
+		lineWidth += dimensions.Width
+		measuredHeight = CLAY__MAX(measuredHeight, dimensions.Height)
+		measured.MinWidth = CLAY__MAX(dimensions.Width, measured.MinWidth)
+	}
+	measuredWidth = CLAY__MAX(lineWidth, measuredWidth) - float32(textConfig.LetterSpacing)
+
+	measured.MeasuredWordsStartIndex = tempWord.Next
+	measured.UnwrappedDimensions.Width = measuredWidth
+	measured.UnwrappedDimensions.Height = measuredHeight
+
+	if elementIndexPrevious != 0 {
+		Clay__Array_Get[Clay__MeasureTextCacheItem](&currentContext.MeasureTextHashMapInternal, elementIndexPrevious).NextIndex = newItemIndex
+	} else {
+		Clay__Array_Set(&currentContext.MeasureTextHashMap, hashBucket, newItemIndex)
+	}
+	return measured
+
+}
+
+func Clay__AddMeasuredWord(word Clay__MeasuredWord, previousWord *Clay__MeasuredWord) *Clay__MeasuredWord {
+	currentContext := Clay_GetCurrentContext()
+	if currentContext.MeasuredWordsFreeList.Length() > 0 {
+		newItemIndex := Clay__Array_GetValue[int32](&currentContext.MeasuredWordsFreeList, currentContext.MeasuredWordsFreeList.Length()-1)
+		Clay__Array_Shrink(&currentContext.MeasuredWordsFreeList, 1)
+		Clay__Array_Set(&currentContext.MeasuredWords, newItemIndex, word)
+		previousWord.Next = newItemIndex
+		return Clay__Array_Get[Clay__MeasuredWord](&currentContext.MeasuredWords, newItemIndex)
+	} else {
+		previousWord.Next = currentContext.MeasuredWords.Length()
+		return Clay__Array_Add(&currentContext.MeasuredWords, word)
+	}
 }
 
 func Clay__OpenTextElement(text Clay_String, textConfig *Clay_TextElementConfig) {
@@ -1141,17 +1335,6 @@ func Clay__OpenTextElement(text Clay_String, textConfig *Clay_TextElementConfig)
 	parentElement.ChildrenOrTextContent.Children.Length++
 }
 
-type Clay__MeasureTextCacheItem struct {
-	UnwrappedDimensions     Clay_Dimensions
-	MeasuredWordsStartIndex int32
-	MinWidth                float32
-	ContainsNewlines        bool
-	// Hash map data
-	Id         uint32
-	NextIndex  int32
-	Generation uint32
-}
-
 func Clay__InitializePersistentMemory(context *Clay_Context) {
 	// Persistent memory - initialized once and not reset
 	maxElementCount := context.MaxElementCount
@@ -1161,7 +1344,7 @@ func Clay__InitializePersistentMemory(context *Clay_Context) {
 	context.ScrollContainerDatas = Clay__Array_Allocate_Arena[Clay__ScrollContainerDataInternal](100, arena)
 	context.LayoutElementsHashMapInternal = Clay__Array_Allocate_Arena[Clay_LayoutElementHashMapItem](maxElementCount, arena, mem.MemArrayWithZeroValuePtr[Clay_LayoutElementHashMapItem](&Clay_LayoutElementHashMapItem_DEFAULT))
 	context.LayoutElementsHashMap = Clay__Array_Allocate_Arena[int32](maxElementCount, arena, mem.MemArrayWithIsHashmap[int32](), mem.MemArrayWithZeroValue[int32](-1))
-	context.MeasureTextHashMapInternal = Clay__Array_Allocate_Arena[Clay__MeasureTextCacheItem](maxElementCount, arena)
+	context.MeasureTextHashMapInternal = Clay__Array_Allocate_Arena[Clay__MeasureTextCacheItem](maxElementCount, arena, mem.MemArrayWithZeroValuePtr[Clay__MeasureTextCacheItem](&Clay__MeasureTextCacheItem_DEFAULT))
 	context.MeasureTextHashMapInternalFreeList = Clay__Array_Allocate_Arena[int32](maxElementCount, arena)
 	context.MeasuredWordsFreeList = Clay__Array_Allocate_Arena[int32](maxMeasureTextCacheWordCount, arena)
 	context.MeasureTextHashMap = Clay__Array_Allocate_Arena[int32](maxElementCount, arena, mem.MemArrayWithIsHashmap[int32](), mem.MemArrayWithZeroValue[int32](0))

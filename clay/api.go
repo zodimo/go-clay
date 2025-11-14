@@ -53,7 +53,7 @@ func CLAY_AUTO_ID(elementDeclaration Clay_ElementDeclaration, content ...ClayCon
 // #define CLAY_TEXT(text, textConfig) Clay__OpenTextElement(text, textConfig)
 
 func CLAY_TEXT(text string, options ...TextOption) ClayContainer {
-	textConfig := &Clay_TextElementConfig{}
+	textConfig := DefaultTextElementConfig()
 	for _, option := range options {
 		option(textConfig)
 	}

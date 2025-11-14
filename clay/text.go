@@ -95,6 +95,16 @@ type Clay__MeasuredWord struct {
 	Next        int32
 }
 
+func DefaultTextElementConfig() *Clay_TextElementConfig {
+	return &Clay_TextElementConfig{
+		TextColor:     Clay_Color{R: 0, G: 0, B: 0, A: 1},
+		FontId:        0,
+		FontSize:      16,
+		LetterSpacing: 0,
+		LineHeight:    16,
+	}
+}
+
 type TextOption func(*Clay_TextElementConfig)
 
 func TextWithColor(color Clay_Color) TextOption {

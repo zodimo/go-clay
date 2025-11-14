@@ -132,11 +132,8 @@ func Clay__SizeContainersAlongAxis(xAxis bool) {
 
 				if xAxis {
 					childSizing = childElement.LayoutConfig.Sizing.Width
-					childSize = childElement.Dimensions.Width
 				} else {
 					childSizing = childElement.LayoutConfig.Sizing.Height
-					childSize = childElement.Dimensions.Height
-
 				}
 
 				if childSizing.Type == CLAY__SIZING_TYPE_PERCENT {

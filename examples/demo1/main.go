@@ -31,7 +31,6 @@ func main() {
 }
 
 var (
-	renderer  *claygio.Renderer
 	clayReady bool
 )
 
@@ -89,7 +88,7 @@ func run(w *app.Window) error {
 					Layout: clay.Clay_LayoutConfig{
 						Sizing: clay.Clay_Sizing{
 							Width:  clay.CLAY_SIZING_PERCENT(1),
-							Height: clay.CLAY_SIZING_PERCENT(0.5),
+							Height: clay.CLAY_SIZING_PERCENT(1),
 						},
 						Padding:         clay.CLAY_PADDING_ALL(40),
 						LayoutDirection: clay.CLAY_TOP_TO_BOTTOM,
@@ -108,60 +107,70 @@ func run(w *app.Window) error {
 					BackgroundColor: clay.CLAY_RGBA(153, 153, 153, 255), //dark grey for main container
 					CornerRadius:    clay.CLAY_CORNER_RADIUS(40),
 				},
-				clay.CLAY_TEXT("Hello, world!", clay.TextWithFontSize(48)),
 				clay.CLAY(
-					clay.CLAY_ID("inner"),
+					clay.CLAY_ID("row1"),
 					clay.Clay_ElementDeclaration{
 						Layout: clay.Clay_LayoutConfig{
 							Sizing: clay.Clay_Sizing{
-								Width:  clay.CLAY_SIZING_FIXED(200),
-								Height: clay.CLAY_SIZING_FIXED(50),
+								Width:  clay.CLAY_SIZING_PERCENT(0.8),
+								Height: clay.CLAY_SIZING_PERCENT(0.2),
 							},
-							Padding: clay.CLAY_PADDING_ALL(16),
-						},
-						BackgroundColor: clay.CLAY_RGBA(255, 0, 0, 255), // red
-						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
-					},
-				),
-				clay.CLAY(
-					clay.CLAY_ID("inner2"),
-					clay.Clay_ElementDeclaration{
-						Layout: clay.Clay_LayoutConfig{
-							Sizing: clay.Clay_Sizing{
-								Width:  clay.CLAY_SIZING_FIXED(200),
-								Height: clay.CLAY_SIZING_FIXED(100),
-							},
-							Padding:         clay.CLAY_PADDING_ALL(16),
-							LayoutDirection: clay.CLAY_TOP_TO_BOTTOM,
 						},
 						BackgroundColor: clay.CLAY_RGBA(0, 255, 0, 255), // green
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
-					clay.CLAY_TEXT("good, morning!"),
-					clay.CLAY(
-						clay.CLAY_ID("inner3"),
-						clay.Clay_ElementDeclaration{
-							Layout: clay.Clay_LayoutConfig{
-								Sizing: clay.Clay_Sizing{
-									Width:  clay.CLAY_SIZING_PERCENT(1),
-									Height: clay.CLAY_SIZING_PERCENT(1),
-								},
-								Padding: clay.CLAY_PADDING_ALL(16),
-							},
-							BackgroundColor: clay.CLAY_RGBA(0, 0, 255, 255), // blue
-							CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
-							Border: clay.Clay_BorderElementConfig{
-								Color: clay.CLAY_RGBA(255, 0, 255, 255), // purple
-								Width: clay.Clay_BorderWidth{
-									Left:   2,
-									Right:  2,
-									Top:    2,
-									Bottom: 2,
-								},
+				),
+				clay.CLAY(
+					clay.CLAY_ID("row2"),
+					clay.Clay_ElementDeclaration{
+						Layout: clay.Clay_LayoutConfig{
+							Sizing: clay.Clay_Sizing{
+								Width:  clay.CLAY_SIZING_PERCENT(0.8),
+								Height: clay.CLAY_SIZING_PERCENT(0.2),
 							},
 						},
-						clay.CLAY_TEXT("good, morning!", clay.TextWithFontSize(8)),
-					),
+						BackgroundColor: clay.CLAY_RGBA(0, 0, 255, 255), // blue
+						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
+					},
+				),
+				clay.CLAY(
+					clay.CLAY_ID("row3"),
+					clay.Clay_ElementDeclaration{
+						Layout: clay.Clay_LayoutConfig{
+							Sizing: clay.Clay_Sizing{
+								Width:  clay.CLAY_SIZING_PERCENT(0.8),
+								Height: clay.CLAY_SIZING_PERCENT(0.2),
+							},
+						},
+						BackgroundColor: clay.CLAY_RGBA(255, 255, 0, 255), // yellow
+						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
+					},
+				),
+				clay.CLAY(
+					clay.CLAY_ID("row4"),
+					clay.Clay_ElementDeclaration{
+						Layout: clay.Clay_LayoutConfig{
+							Sizing: clay.Clay_Sizing{
+								Width:  clay.CLAY_SIZING_PERCENT(0.8),
+								Height: clay.CLAY_SIZING_PERCENT(0.2),
+							},
+						},
+						BackgroundColor: clay.CLAY_RGBA(255, 255, 255, 255), // white
+						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
+					},
+				),
+				clay.CLAY(
+					clay.CLAY_ID("row5"),
+					clay.Clay_ElementDeclaration{
+						Layout: clay.Clay_LayoutConfig{
+							Sizing: clay.Clay_Sizing{
+								Width:  clay.CLAY_SIZING_PERCENT(0.8),
+								Height: clay.CLAY_SIZING_PERCENT(0.2),
+							},
+						},
+						BackgroundColor: clay.CLAY_RGBA(255, 0, 0, 255), // red
+						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
+					},
 				),
 			)
 

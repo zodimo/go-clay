@@ -89,14 +89,23 @@ func run(w *app.Window) error {
 					Layout: clay.Clay_LayoutConfig{
 						Sizing: clay.Clay_Sizing{
 							Width:  clay.CLAY_SIZING_PERCENT(1),
-							Height: clay.CLAY_SIZING_FIXED(300),
+							Height: clay.CLAY_SIZING_PERCENT(0.5),
 						},
 						Padding:         clay.CLAY_PADDING_ALL(40),
 						LayoutDirection: clay.CLAY_TOP_TO_BOTTOM,
 						ChildGap:        10,
 						ChildAlignment:  clay.Clay_ChildAlignment{X: clay.CLAY_ALIGN_X_CENTER, Y: clay.CLAY_ALIGN_Y_CENTER},
 					},
-					BackgroundColor: clay.Clay_Color{R: 0.9, G: 0.2, B: 0.2, A: 1}, //dark grey for main container
+					Border: clay.Clay_BorderElementConfig{
+						Color: clay.CLAY_RGBA(0, 0, 0, 255), // black
+						Width: clay.Clay_BorderWidth{
+							Left:   5,
+							Right:  5,
+							Top:    5,
+							Bottom: 5,
+						},
+					},
+					BackgroundColor: clay.CLAY_RGBA(153, 153, 153, 255), //dark grey for main container
 					CornerRadius:    clay.CLAY_CORNER_RADIUS(40),
 				},
 				clay.CLAY_TEXT("Hello, world!", clay.TextWithFontSize(48)),
@@ -110,7 +119,7 @@ func run(w *app.Window) error {
 							},
 							Padding: clay.CLAY_PADDING_ALL(16),
 						},
-						BackgroundColor: clay.Clay_Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
+						BackgroundColor: clay.CLAY_RGBA(255, 0, 0, 255), // red
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
 				),
@@ -120,76 +129,50 @@ func run(w *app.Window) error {
 						Layout: clay.Clay_LayoutConfig{
 							Sizing: clay.Clay_Sizing{
 								Width:  clay.CLAY_SIZING_FIXED(200),
-								Height: clay.CLAY_SIZING_FIXED(50),
+								Height: clay.CLAY_SIZING_FIXED(100),
 							},
-							Padding: clay.CLAY_PADDING_ALL(16),
+							Padding:         clay.CLAY_PADDING_ALL(16),
+							LayoutDirection: clay.CLAY_TOP_TO_BOTTOM,
 						},
-						BackgroundColor: clay.Clay_Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
+						BackgroundColor: clay.CLAY_RGBA(0, 255, 0, 255), // green
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
 					clay.CLAY_TEXT("good, morning!"),
+					clay.CLAY(
+						clay.CLAY_ID("inner3"),
+						clay.Clay_ElementDeclaration{
+							Layout: clay.Clay_LayoutConfig{
+								Sizing: clay.Clay_Sizing{
+									Width:  clay.CLAY_SIZING_PERCENT(1),
+									Height: clay.CLAY_SIZING_PERCENT(1),
+								},
+								Padding: clay.CLAY_PADDING_ALL(16),
+							},
+							BackgroundColor: clay.CLAY_RGBA(0, 0, 255, 255), // blue
+							CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
+							// Border: clay.Clay_BorderElementConfig{
+							// 	Color: clay.CLAY_RGBA(255, 255, 255, 255), // white
+							// 	Width: clay.Clay_BorderWidth{
+							// 		Left:   1,
+							// 		Right:  1,
+							// 		Top:    1,
+							// 		Bottom: 1,
+							// 	},
+							// },
+						},
+						clay.CLAY_TEXT("good, morning!", clay.TextWithFontSize(8)),
+					),
 				),
 			)
-
-			// clay.Clay__CloseElement()
-
-			// how to let the error show an element is not closed?
-
-			// main := clay.CLAY(clay.ElementDeclaration{
-			// 	// ID: clay.CLAY_ID("main"),
-			// 	Layout: clay.LayoutConfig{
-			// 		Sizing: clay.Sizing{
-			// 			Width:  clay.CLAY_SIZING_FIXED(400),
-			// 			Height: clay.CLAY_SIZING_FIXED(300),
-			// 		},
-			// 		Padding: clay.CLAY_PADDING_ALL(16),
-			// 	},
-			// 	BackgroundColor: clay.Color{R: 0.9, G: 0.2, B: 0.2, A: 1},
-			// 	CornerRadius:    clay.CLAY_CORNER_RADIUS(10),
-			// })
-
-			// inner := clay.CLAY(clay.ElementDeclaration{
-			// 	ID: clay.CLAY_ID("hello-text"),
-			// 	Layout: clay.LayoutConfig{
-			// 		Sizing: clay.Sizing{
-			// 			Width:  clay.CLAY_SIZING_FIXED(200),
-			// 			Height: clay.CLAY_SIZING_FIXED(50),
-			// 		},
-			// 	},
-			// 	BackgroundColor: clay.Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
-			// 	CornerRadius:    clay.CLAY_CORNER_RADIUS(5),
-			// }).Text("H!", clay.TextElementConfig{
-			// 	FontSize: 24,
-			// 	// LineHeight: 48,
-			// 	Color:  clay.Color{R: 1, G: 1, B: 1, A: 1},
-			// 	FontID: 0,
-			// })
-			// inner.End()
-			// main.End()
 
 			commands := clay.Clay_EndLayout()
 
 			fmt.Printf("Generated %d render commands\n", len(commands))
 			for i, cmd := range commands {
-				// fmt.Printf("Command %d: Type=%d, ID=%d, Bounds=%+v\n",
-				// 	i, cmd.CommandType, cmd.Id, cmd.BoundingBox)
-				// fmt.Printf("Command %d: %s\n", i, cmd.String())
 				printCommand(i, cmd)
 			}
 
 			renderer.Render(gtx.Ops, commands)
-
-			// fmt.Printf("gtx.px: %+v\n", gtx.Dp())
-
-			// renderer.SetViewport(clay.BoundingBox{
-			// 	X: 0, Y: 0,
-			// 	Width:  float32(gtx.Constraints.Max.X),
-			// 	Height: float32(gtx.Constraints.Max.Y),
-			// })
-			// if err := renderer.Render(commands); err != nil {
-			// 	log.Printf("render error: %v", err)
-			// }
-			// fmt.Printf("gtx.Ops: %+v\n", gtx.Ops)
 			e.Frame(gtx.Ops)
 		}
 	}

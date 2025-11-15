@@ -12,7 +12,7 @@ func (r *Renderer) render(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
 	case clay.CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
 		RenderRectangle(ops, renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_BORDER:
-		RenderBorder(renderCommand)
+		RenderBorder(ops, renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_TEXT:
 		r.RenderText(ops, renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_IMAGE:
@@ -30,11 +30,8 @@ func RenderRectangle(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
 	RenderRectangleWithBounds(ops, renderCommand)
 }
 
-func RenderBorder(renderCommand clay.Clay_RenderCommand) op.Ops {
-	var ops op.Ops
-	spec := renderCommand.RenderData.Border
-	_ = spec
-	return ops
+func RenderBorder(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
+	RenderBorderWithBounds(ops, renderCommand)
 }
 
 func (r *Renderer) RenderText(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {

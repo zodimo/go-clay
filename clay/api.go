@@ -153,3 +153,13 @@ func Clay_SetQueryScrollOffsetFunction(queryScrollOffsetFunction Clay__QueryScro
 	QueryScrollOffsetFunction = queryScrollOffsetFunction
 	currentContext.QueryScrollOffsetUserData = userData
 }
+
+// CLAY_RGBA converts RGBA values to Clay_Color
+func CLAY_RGBA(r, g, b, a float32) Clay_Color {
+	return Clay_Color{R: r / 255, G: g / 255, B: b / 255, A: a / 255}
+}
+
+// CLAY_RGB converts RGB values to Clay_Color
+func CLAY_RGB(r, g, b float32) Clay_Color {
+	return CLAY_RGBA(r, g, b, 1)
+}

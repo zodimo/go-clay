@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"gioui.org/app"
+	"gioui.org/font/gofont"
 	"gioui.org/op"
 	"gioui.org/unit"
 
@@ -41,7 +42,8 @@ func run(w *app.Window) error {
 	if err != nil {
 		return err
 	}
-	fontManager := claygio.NewFontManager()
+	fontCollection := gofont.Collection()
+	fontManager := claygio.NewFontManager(claygio.FontManagerWithFontCollection(fontCollection))
 
 	measurer := claygio.NewMeasurer(claygio.MeasurerWithFontManager(fontManager))
 	renderer := claygio.NewRenderer(claygio.RendererWithFontManager(fontManager))

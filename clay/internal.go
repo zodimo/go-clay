@@ -1067,6 +1067,10 @@ func Clay__ConfigureOpenElementPtr(elementDeclaration *Clay_ElementDeclaration) 
 		panic(err)
 	}
 	openLayoutElement.ElementConfigs = elementConfigs
+
+	if elementDeclaration.OnHover.OnHoverFunction != nil {
+		Clay_OnHover(elementDeclaration.OnHover.OnHoverFunction, elementDeclaration.OnHover.UserData)
+	}
 }
 
 func Clay__GetOpenLayoutElement() *Clay_LayoutElement {

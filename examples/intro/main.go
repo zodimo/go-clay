@@ -84,6 +84,12 @@ func RenderHeaderButton(text string) clay.ClayContainer {
 			},
 			BackgroundColor: clay.CLAY_RGBA(140, 140, 150, 255), //grey
 			CornerRadius:    clay.CLAY_CORNER_RADIUS(5),
+			OnHover: clay.Clay_OnHoverConfig{
+				OnHoverFunction: func(elementId clay.Clay_ElementId, pointerInfo clay.Clay_PointerData, userData any) {
+					fmt.Printf("OnHoverFunction called for element %s\n", elementId.Id)
+				},
+				UserData: nil,
+			},
 		},
 		clay.CLAY_TEXT(text,
 			clay.TextWithFontSize(16),
@@ -162,6 +168,8 @@ func run(w *app.Window) error {
 				clay.Clay_SetMaxMeasureTextCacheWordCount(32000)
 				clayReady = true
 			}
+
+			clayGioEngine.UpdateInput(gtx)
 
 			// log.Printf("window size: %v", gtx.Constraints.Max)
 			clay.Clay_SetLayoutDimensions(

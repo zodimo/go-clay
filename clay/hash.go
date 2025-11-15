@@ -1,7 +1,5 @@
 package clay
 
-import "unsafe"
-
 func Clay__HashString(key Clay_String, seed uint32) Clay_ElementId {
 	hash := seed
 
@@ -50,7 +48,11 @@ func Clay__HashStringContentsWithConfig(text *Clay_String, config *Clay_TextElem
 	hash := uint32(0)
 
 	if text.IsStaticallyAllocated {
-		hash += uint32(uintptr(unsafe.Pointer(&text.Chars)))
+		// In Go, []byte(label) creates a copy, so the pointer isn't stable like in C.
+		// For statically allocated strings, we still hash the content to ensure
+		// cache entries match. The "statically allocated" flag is mainly for
+		// lifetime management, not for pointer-based hashing in Go.
+		hash = Clay__HashData(text.Chars, text.Length) % UINT32_MAX
 		hash += (hash << 10)
 		hash ^= (hash >> 6)
 		hash += uint32(text.Length)

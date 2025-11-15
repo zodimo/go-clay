@@ -181,6 +181,11 @@ type Clay_ClipElementConfig struct {
 
 }
 
+type Clay_OnHoverConfig struct {
+	OnHoverFunction Clay_OnHoverFunction
+	UserData        any
+}
+
 type Clay_ElementDeclaration struct {
 	Layout          Clay_LayoutConfig
 	BackgroundColor Clay_Color
@@ -192,6 +197,7 @@ type Clay_ElementDeclaration struct {
 	Clip            Clay_ClipElementConfig
 	Border          Clay_BorderElementConfig
 	UserData        interface{}
+	OnHover         Clay_OnHoverConfig
 }
 
 type ClayOptions struct {

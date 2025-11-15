@@ -1291,9 +1291,22 @@ func Clay__OpenTextElement(text Clay_String, textConfig *Clay_TextElementConfig)
 
 	if currentContext.OpenClipElementStack.Length() > 0 {
 
-		if currentContext.LayoutElementClipElementIds.Length() != currentContext.LayoutElements.Length() {
-			panic("LayoutElementClipElementIds length does not match LayoutElements length")
+		if currentContext.LayoutElementClipElementIds.Length() == currentContext.LayoutElements.Length()-1 {
+			Clay__Array_Add(
+				&currentContext.LayoutElementClipElementIds,
+				Clay__Array_GetValue[int32](&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1),
+			)
+		} else if currentContext.LayoutElementClipElementIds.Length() == currentContext.LayoutElements.Length() {
+			Clay__Array_Set(
+				&currentContext.LayoutElementClipElementIds,
+				currentContext.LayoutElements.Length()-1,
+				Clay__Array_GetValue[int32](&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1),
+			)
+		} else {
+			message := fmt.Sprintf("LayoutElementClipElementIds length : %d, LayoutElements length : %d\n", currentContext.LayoutElementClipElementIds.Length(), currentContext.LayoutElements.Length())
+			panic(message)
 		}
+
 		if currentContext.LayoutElementClipElementIds.Length() == 0 {
 			Clay__Array_Add(
 				&currentContext.LayoutElementClipElementIds,

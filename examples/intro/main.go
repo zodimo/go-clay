@@ -257,6 +257,10 @@ func run(w *app.Window) error {
 							},
 							BackgroundColor: panelConfig.Color,
 							CornerRadius:    panelConfig.CornerRadius,
+							Clip: clay.Clay_ClipElementConfig{
+								Vertical:    true,
+								ChildOffset: clay.Clay_GetScrollOffset(),
+							},
 						},
 						RenderDocumentContent(SelectedDocumentIndex)...,
 					),

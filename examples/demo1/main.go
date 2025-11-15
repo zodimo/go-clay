@@ -85,7 +85,7 @@ func run(w *app.Window) error {
 			// // 2. Build Clay layout
 			clay.Clay_BeginLayout()
 			clay.CLAY_ROOT(
-				clay.CLAY_ID("main"),
+				"main",
 				clay.Clay_ElementDeclaration{
 					Layout: clay.Clay_LayoutConfig{
 						Sizing: clay.Clay_Sizing{
@@ -110,7 +110,7 @@ func run(w *app.Window) error {
 					CornerRadius:    clay.CLAY_CORNER_RADIUS(40),
 				},
 				clay.CLAY(
-					clay.CLAY_ID("row1"),
+					"row1",
 					clay.Clay_ElementDeclaration{
 						Layout: clay.Clay_LayoutConfig{
 							Sizing: clay.Clay_Sizing{
@@ -123,7 +123,7 @@ func run(w *app.Window) error {
 					},
 				),
 				clay.CLAY(
-					clay.CLAY_ID("row2"),
+					"row2",
 					clay.Clay_ElementDeclaration{
 						Layout: clay.Clay_LayoutConfig{
 							Sizing: clay.Clay_Sizing{
@@ -136,7 +136,7 @@ func run(w *app.Window) error {
 					},
 				),
 				clay.CLAY(
-					clay.CLAY_ID("row3"),
+					"row3",
 					clay.Clay_ElementDeclaration{
 						Layout: clay.Clay_LayoutConfig{
 							Sizing: clay.Clay_Sizing{
@@ -149,7 +149,7 @@ func run(w *app.Window) error {
 					},
 				),
 				clay.CLAY(
-					clay.CLAY_ID("row4"),
+					"row4",
 					clay.Clay_ElementDeclaration{
 						Layout: clay.Clay_LayoutConfig{
 							Sizing: clay.Clay_Sizing{
@@ -162,7 +162,7 @@ func run(w *app.Window) error {
 					},
 				),
 				clay.CLAY(
-					clay.CLAY_ID("row5"),
+					"row5",
 					clay.Clay_ElementDeclaration{
 						Layout: clay.Clay_LayoutConfig{
 							Sizing: clay.Clay_Sizing{

@@ -782,10 +782,28 @@ func Clay__OpenElement() {
 	openLayoutElement := Clay__Array_Add(&currentContext.LayoutElements, layoutElement)
 	Clay__Array_Add(&currentContext.OpenLayoutElementStack, currentContext.LayoutElements.Length()-1)
 	Clay__GenerateIdForAnonymousElement(openLayoutElement)
+
+	//@TODO review this logic
 	if currentContext.OpenClipElementStack.Length() > 0 {
-		Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, Clay__Array_GetValue(&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+		if currentContext.LayoutElementClipElementIds.Length() == 0 {
+			Clay__Array_Add(&currentContext.LayoutElementClipElementIds, Clay__Array_GetValue(&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+		} else {
+			if currentContext.LayoutElementClipElementIds.Length() <= currentContext.LayoutElements.Length()-1 {
+				Clay__Array_Add(&currentContext.LayoutElementClipElementIds, Clay__Array_GetValue(&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+			} else {
+				Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, Clay__Array_GetValue(&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+			}
+		}
 	} else {
-		Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, 0)
+		if currentContext.LayoutElementClipElementIds.Length() == 0 {
+			Clay__Array_Add(&currentContext.LayoutElementClipElementIds, 0)
+		} else {
+			if currentContext.LayoutElementClipElementIds.Length() <= currentContext.LayoutElements.Length()-1 {
+				Clay__Array_Add(&currentContext.LayoutElementClipElementIds, 0)
+			} else {
+				Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, 0)
+			}
+		}
 	}
 }
 func Clay__OpenElementWithId(elementId Clay_ElementId) {

@@ -16,24 +16,29 @@ func (c *claContainer) Run() {
 	c.wrapper()
 }
 
-func CLAY_ROOT(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) {
-	CLAY(elementID, elementDeclaration, content...).Run()
+func CLAY_ROOT(id string, elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) {
+	CLAY(id, elementDeclaration, content...).Run()
 }
 
 func CLAY_ROOT_AUTO_ID(elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) {
 	CLAY_AUTO_ID(elementDeclaration, content...).Run()
 }
 
-func CLAY(elementID Clay_ElementId, elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) ClayContainer {
-	return &claContainer{
-		wrapper: func() {
-			Clay__OpenElementWithId(elementID)
-			Clay__ConfigureOpenElement(elementDeclaration)
-			for _, content := range content {
-				content.Run()
-			}
-			Clay__CloseElement()
-		},
+func CLAY(id string, elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) ClayContainer {
+	if id == "" {
+		return CLAY_AUTO_ID(elementDeclaration, content...)
+	} else {
+		elementID := CLAY_ID(id)
+		return &claContainer{
+			wrapper: func() {
+				Clay__OpenElementWithId(elementID)
+				Clay__ConfigureOpenElement(elementDeclaration)
+				for _, content := range content {
+					content.Run()
+				}
+				Clay__CloseElement()
+			},
+		}
 	}
 }
 

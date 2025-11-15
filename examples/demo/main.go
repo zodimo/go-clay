@@ -87,7 +87,7 @@ func run(w *app.Window) error {
 			// // 2. Build Clay layout
 			clay.Clay_BeginLayout()
 			clay.CLAY_ROOT(
-				clay.CLAY_ID("main"),
+				"main",
 				clay.Clay_ElementDeclaration{
 					Layout: clay.Clay_LayoutConfig{
 						Sizing: clay.Clay_Sizing{
@@ -113,7 +113,7 @@ func run(w *app.Window) error {
 				},
 				clay.CLAY_TEXT("Hello, world!", clay.TextWithFontSize(48)),
 				clay.CLAY(
-					clay.CLAY_ID("inner"),
+					"inner",
 					clay.Clay_ElementDeclaration{
 						Layout: clay.Clay_LayoutConfig{
 							Sizing: clay.Clay_Sizing{
@@ -127,7 +127,7 @@ func run(w *app.Window) error {
 					},
 				),
 				clay.CLAY(
-					clay.CLAY_ID("inner2"),
+					"inner2",
 					clay.Clay_ElementDeclaration{
 						Layout: clay.Clay_LayoutConfig{
 							Sizing: clay.Clay_Sizing{
@@ -142,7 +142,7 @@ func run(w *app.Window) error {
 					},
 					clay.CLAY_TEXT("good, morning!"),
 					clay.CLAY(
-						clay.CLAY_ID("inner3"),
+						"inner3",
 						clay.Clay_ElementDeclaration{
 							Layout: clay.Clay_LayoutConfig{
 								Sizing: clay.Clay_Sizing{

@@ -69,11 +69,13 @@ type Clay_ElementConfig struct {
 	Config Clay_ElementConfigUnion
 }
 
+type Clay_OnHoverFunction func(elementId Clay_ElementId, pointerInfo Clay_PointerData, userData any)
+
 type Clay_LayoutElementHashMapItem struct { // todo get this struct into a single cache line
 	BoundingBox           Clay_BoundingBox
 	ElementId             Clay_ElementId
 	LayoutElement         *Clay_LayoutElement
-	OnHoverFunction       func(elementId Clay_ElementId, pointerInfo Clay_PointerData, userData any)
+	OnHoverFunction       Clay_OnHoverFunction
 	HoverFunctionUserData any
 	NextIndex             int32
 	Generation            uint32

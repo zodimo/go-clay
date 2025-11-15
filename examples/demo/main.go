@@ -82,6 +82,9 @@ func run(w *app.Window) error {
 				},
 			)
 
+			clayGioEngine.UpdateInput(gtx)
+			clay.Clay_SetPointerState(clayGioEngine.GetMousePosition(), true)
+
 			// // 2. Build Clay layout
 			clay.Clay_BeginLayout()
 			clay.CLAY_ROOT(

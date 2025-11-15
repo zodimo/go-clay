@@ -1,6 +1,7 @@
 package claygio
 
 import (
+	"gioui.org/layout"
 	"gioui.org/op"
 	"github.com/zodimo/clay-go/clay"
 )
@@ -10,6 +11,7 @@ var _ TextMeasurer = (*ClayGioEngine)(nil)
 
 type ClayGioEngine struct {
 	config *ClaygioConfig
+	input  *GioInput
 }
 
 type ClaygioConfig struct {
@@ -50,6 +52,7 @@ func NewClayGioEngine(opts ...ClaygioConfigOption) *ClayGioEngine {
 	}
 	return &ClayGioEngine{
 		config: config,
+		input:  NewGioInput(),
 	}
 }
 
@@ -59,4 +62,16 @@ func (c *ClayGioEngine) Render(ops *op.Ops, commands []clay.Clay_RenderCommand) 
 
 func (c *ClayGioEngine) MeasureText(text clay.Clay_StringSlice, config *clay.Clay_TextElementConfig, userData interface{}) clay.Clay_Dimensions {
 	return c.config.textMeasurer.MeasureText(text, config, userData)
+}
+
+func (c *ClayGioEngine) GetMousePosition() clay.Clay_Vector2 {
+	return c.input.GetPointerPosition()
+}
+
+func (c *ClayGioEngine) GetMouseScrollDelta() clay.Clay_Vector2 {
+	return clay.Clay_Vector2{}
+}
+
+func (c *ClayGioEngine) UpdateInput(gtx layout.Context) {
+	c.input.Update(gtx)
 }

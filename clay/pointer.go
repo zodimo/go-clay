@@ -106,3 +106,27 @@ func Clay_SetPointerState(position Clay_Vector2, isPointerDown bool) {
 		}
 	}
 }
+
+func Clay_PointerOver(elementId Clay_ElementId) bool { // TODO return priority for separating multiple results
+	context := Clay_GetCurrentContext()
+	for i := int32(0); i < context.PointerOverIds.Length(); i++ {
+		if Clay__Array_GetValue(&context.PointerOverIds, i).Id == elementId.Id {
+			return true
+		}
+	}
+	return false
+}
+
+func Clay_OnHover(onHoverFunction Clay_OnHoverFunction, userData any) {
+	context := Clay_GetCurrentContext()
+	if context.BooleanWarnings.MaxElementsExceeded {
+		return
+	}
+	openLayoutElement := Clay__GetOpenLayoutElement()
+	if openLayoutElement.Id == 0 {
+		Clay__GenerateIdForAnonymousElement(openLayoutElement)
+	}
+	hashMapItem := Clay__GetHashMapItem(openLayoutElement.Id)
+	hashMapItem.OnHoverFunction = onHoverFunction
+	hashMapItem.HoverFunctionUserData = userData
+}

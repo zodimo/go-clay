@@ -75,3 +75,7 @@ func (c *ClayGioEngine) GetMouseScrollDelta() clay.Clay_Vector2 {
 func (c *ClayGioEngine) UpdateInput(gtx layout.Context) {
 	c.input.Update(gtx)
 }
+
+func (c *ClayGioEngine) IsPointerDown() bool {
+	return c.input.Clicked()
+}

@@ -10,6 +10,7 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/widget"
 	"github.com/zodimo/clay-go/clay"
 )
@@ -24,6 +25,9 @@ type GioInput struct {
 
 	pointerMove PointerMove
 	// pointerScroll gesture.Scroll
+
+	// clickedThisFrame tracks if a click occurred in the current frame
+	clickedThisFrame bool
 }
 
 func NewGioInput() *GioInput {
@@ -35,7 +39,10 @@ func NewGioInput() *GioInput {
 }
 
 func (b *GioInput) GetPointerPosition() clay.Clay_Vector2 {
-	return clay.Clay_Vector2{}
+	return clay.Clay_Vector2{
+		X: float32(b.pointerMove.Position.X),
+		Y: float32(b.pointerMove.Position.Y),
+	}
 }
 
 // Click executes a simple programmatic click.
@@ -43,9 +50,10 @@ func (b *GioInput) Click() {
 	b.requestClicks++
 }
 
-// Clicked calls Update and reports whether a click was registered.
-func (b *GioInput) Clicked(gtx layout.Context) bool {
-	return b.clicked(gtx)
+// Clicked reports whether a click was registered in the current frame.
+// This should be called after Update() has been called for the frame.
+func (b *GioInput) Clicked() bool {
+	return b.clickedThisFrame
 }
 
 func (b *GioInput) clicked(gtx layout.Context) bool {
@@ -88,22 +96,55 @@ func (b *GioInput) History() []widget.Press {
 
 // }
 
-func (b *GioInput) add(ops *op.Ops) {
-	b.pointerClick.Add(ops)
-	b.pointerMove.Add(ops)
-	// b.pointerScroll.Add(ops)
+func (b *GioInput) add(gtx layout.Context) {
+	// Create a clip rectangle covering the entire window.
+	// This makes the entire page clickable, matching the pattern from widget.Clickable.
+	// The clip defines the hit area for pointer events.
+	// Rectangle from (0,0) to window size
+	clickArea := image.Rectangle{
+		Min: image.Point{},
+		Max: gtx.Constraints.Max,
+	}
+	defer clip.Rect(clickArea).Push(gtx.Ops).Pop()
 
-	event.Op(ops, b) // i don't know if we need this
+	// Add the click gesture handler. This registers the gesture to receive
+	// pointer events within the clip area above. The gesture.Click.Add() method
+	// automatically handles event routing through the pointer queue.
+	// gesture.Click.Add() internally calls event.Op(ops, c) to tag events with itself.
+	b.pointerClick.Add(gtx.Ops)
 
+	// Tag events with this GioInput instance. This is needed for:
+	// 1. Keyboard event handling (if we add it in the future)
+	// 2. Proper event routing in the Gio event system
+	// This matches the pattern from widget.Clickable.layout()
+	event.Op(gtx.Ops, b)
+
+	// Add pointer move handler for tracking mouse position anywhere on the page
+	b.pointerMove.Add(gtx.Ops)
 }
 
-// Update the button state by processing events, and return the next
-// click, if any.
+// Update processes input events and updates the state.
+// This must be called every frame before checking Clicked().
 func (b *GioInput) Update(gtx layout.Context) {
-	b.add(gtx.Ops)
+	// Reset click state for this frame
+	b.clickedThisFrame = false
+
+	// Set up ops for the next frame (this registers the gesture handlers)
+	b.add(gtx)
+
+	// Update pointer move tracking
 	b.pointerMove.Update(gtx)
-	// b.pointerScroll.Update(gtx)
-	b.clickableUpdate(gtx)
+
+	// Process all click events - if any click occurred, set clickedThisFrame to true
+	// This matches the pattern from widget.Clickable.layout() which processes
+	// all pending clicks in a loop
+	for {
+		_, clicked := b.clickableUpdate(gtx)
+		if !clicked {
+			break
+		}
+		b.clickedThisFrame = true
+	}
 }
 
 func (b *GioInput) clickableUpdate(gtx layout.Context) (widget.Click, bool) {

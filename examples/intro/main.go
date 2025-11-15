@@ -87,6 +87,7 @@ func RenderHeaderButton(text string) clay.ClayContainer {
 			OnHover: clay.Clay_OnHoverConfig{
 				OnHoverFunction: func(elementId clay.Clay_ElementId, pointerInfo clay.Clay_PointerData, userData any) {
 					fmt.Printf("OnHoverFunction called for element %s\n", elementId.Id)
+					panic("test")
 				},
 				UserData: nil,
 			},
@@ -170,6 +171,9 @@ func run(w *app.Window) error {
 			}
 
 			clayGioEngine.UpdateInput(gtx)
+			fmt.Printf("IsPointerDown: %v\n", clayGioEngine.IsPointerDown(gtx))
+			fmt.Printf("MousePosition: %v\n", clayGioEngine.GetMousePosition())
+			clay.Clay_SetPointerState(clayGioEngine.GetMousePosition(), clayGioEngine.IsPointerDown(gtx))
 
 			// log.Printf("window size: %v", gtx.Constraints.Max)
 			clay.Clay_SetLayoutDimensions(

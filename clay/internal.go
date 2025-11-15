@@ -1277,7 +1277,7 @@ func Clay__AddMeasuredWord(word Clay__MeasuredWord, previousWord *Clay__Measured
 	}
 }
 
-func Clay__SetMaxMeasureTextCacheWordCount(maxMeasureTextCacheWordCount int32) {
+func Clay_SetMaxMeasureTextCacheWordCount(maxMeasureTextCacheWordCount int32) {
 	context := Clay_GetCurrentContext()
 	if context != nil {
 		context.MaxMeasureTextCacheWordCount = maxMeasureTextCacheWordCount

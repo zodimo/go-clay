@@ -39,11 +39,13 @@ func run(w *app.Window) error {
 	var ops op.Ops
 	memory := make([]byte, 25*1024*1024)
 	arena, err := mem.NewArena(memory)
-
-	measurer := claygio.NewMeasurer()
 	if err != nil {
 		return err
 	}
+	fontManager := claygio.NewFontManager()
+
+	measurer := claygio.NewMeasurer(claygio.MeasurerWithFontManager(fontManager))
+	renderer := claygio.NewRenderer(claygio.RendererWithFontManager(fontManager))
 
 	for {
 		switch e := w.Event().(type) {
@@ -52,9 +54,6 @@ func run(w *app.Window) error {
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
 
-			if renderer == nil {
-				renderer = claygio.NewRenderer(gtx.Ops)
-			}
 			if !clayReady {
 				clay.Clay_Initialize(
 					*arena,
@@ -178,7 +177,7 @@ func run(w *app.Window) error {
 				printCommand(i, cmd)
 			}
 
-			renderer.Render(commands)
+			renderer.Render(gtx.Ops, commands)
 
 			// fmt.Printf("gtx.px: %+v\n", gtx.Dp())
 

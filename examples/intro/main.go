@@ -284,13 +284,7 @@ func run(w *app.Window) error {
 }
 
 func printCommand(i int, cmd clay.Clay_RenderCommand) {
-	fmt.Println("--------------------------------")
-	fmt.Printf("CommandType: %s\n", cmd.CommandType.String())
-	fmt.Printf("Id: %d\n", cmd.Id)
-	fmt.Printf("ZIndex: %d\n", cmd.ZIndex)
-	fmt.Printf("BoundingBox: %s\n", cmd.BoundingBox.String())
-	fmt.Printf("RenderData: %s\n", cmd.RenderData.String(cmd.CommandType))
-	fmt.Printf("UserData: %+v\n", cmd.UserData)
+	fmt.Printf("Command %d:\n%s\n", i, cmd.DebugString())
 
 	// commandJSON, err := json.MarshalIndent(cmd, "", "  ")
 	// if err != nil {

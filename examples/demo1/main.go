@@ -45,8 +45,7 @@ func run(w *app.Window) error {
 	fontCollection := gofont.Collection()
 	fontManager := claygio.NewFontManager(claygio.FontManagerWithFontCollection(fontCollection))
 
-	measurer := claygio.NewMeasurer(claygio.MeasurerWithFontManager(fontManager))
-	renderer := claygio.NewRenderer(claygio.RendererWithFontManager(fontManager))
+	clayGioEngine := claygio.NewClayGioEngine(claygio.ClaygioWithFontManager(fontManager))
 
 	for {
 		switch e := w.Event().(type) {
@@ -70,7 +69,7 @@ func run(w *app.Window) error {
 					}, nil),
 				)
 				// clay.Clay_SetDebugModeEnabled(true)
-				clay.Clay_SetMeasureTextFunction(measurer.MeasureText, gtx)
+				clay.Clay_SetMeasureTextFunction(clayGioEngine.MeasureText, gtx)
 				clayReady = true
 			}
 
@@ -183,7 +182,7 @@ func run(w *app.Window) error {
 				printCommand(i, cmd)
 			}
 
-			renderer.Render(gtx.Ops, commands)
+			clayGioEngine.Render(gtx.Ops, commands)
 			e.Frame(gtx.Ops)
 		}
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 // renderTextWithBounds renders text using bounds from RenderCommand
-func (r *Renderer) RenderTextWithBounds(ops *op.Ops, renderCommand clay.Clay_RenderCommand) error {
+func (r *renderer) RenderTextWithBounds(ops *op.Ops, renderCommand clay.Clay_RenderCommand) error {
 	bounds := renderCommand.BoundingBox
 	cmd := renderCommand.RenderData.Text
 	// Validate bounds

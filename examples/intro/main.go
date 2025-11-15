@@ -32,7 +32,6 @@ func main() {
 }
 
 var (
-	renderer  *claygio.Renderer
 	clayReady bool
 )
 
@@ -125,8 +124,7 @@ func run(w *app.Window) error {
 	fontCollection := gofont.Collection()
 	fontManager := claygio.NewFontManager(claygio.FontManagerWithFontCollection(fontCollection))
 
-	measurer := claygio.NewMeasurer(claygio.MeasurerWithFontManager(fontManager))
-	renderer := claygio.NewRenderer(claygio.RendererWithFontManager(fontManager))
+	clayGioEngine := claygio.NewClayGioEngine(claygio.ClaygioWithFontManager(fontManager))
 
 	layoutExpand := clay.Clay_Sizing{
 		Width:  clay.CLAY_SIZING_GROW(clay.Clay_SizingMinMax{Min: 0}),
@@ -159,7 +157,7 @@ func run(w *app.Window) error {
 					}, nil),
 				)
 				// clay.Clay_SetDebugModeEnabled(true)
-				clay.Clay_SetMeasureTextFunction(measurer.MeasureText, gtx)
+				clay.Clay_SetMeasureTextFunction(clayGioEngine.MeasureText, gtx)
 				clayReady = true
 			}
 
@@ -271,10 +269,15 @@ func run(w *app.Window) error {
 
 			fmt.Printf("Generated %d render commands\n", len(commands))
 			for i, cmd := range commands {
-				printCommand(i, cmd)
+				switch cmd.CommandType {
+				case clay.CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
+				case clay.CLAY_RENDER_COMMAND_TYPE_TEXT:
+				default:
+					printCommand(i, cmd)
+				}
 			}
 
-			renderer.Render(gtx.Ops, commands)
+			clayGioEngine.Render(gtx.Ops, commands)
 			e.Frame(gtx.Ops)
 		}
 	}

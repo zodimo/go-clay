@@ -17,23 +17,26 @@ func RendererWithFontManager(fontManager *FontManager) RendererOption {
 	}
 }
 
-type Renderer struct {
+type Renderer interface {
+	Render(ops *op.Ops, commands []clay.Clay_RenderCommand)
+}
+type renderer struct {
 	fontManager *FontManager
 }
 
-func NewRenderer(opts ...RendererOption) *Renderer {
+func NewRenderer(opts ...RendererOption) Renderer {
 	options := &RendererOptions{
 		FontManager: NewFontManager(),
 	}
 	for _, opt := range opts {
 		opt(options)
 	}
-	return &Renderer{
+	return &renderer{
 		fontManager: options.FontManager,
 	}
 }
 
-func (r *Renderer) Render(ops *op.Ops, commands []clay.Clay_RenderCommand) {
+func (r *renderer) Render(ops *op.Ops, commands []clay.Clay_RenderCommand) {
 	for _, command := range commands {
 		r.render(ops, command)
 	}

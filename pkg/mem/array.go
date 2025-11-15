@@ -274,3 +274,13 @@ func MArray_Shrink[T any](array *MemArray[T], length int32) {
 func MArray_Grow[T any](array *MemArray[T], length int32) {
 	array.Grow(length)
 }
+
+func MArray_IndexOf[T any](array *MemArray[T], item *T) int32 {
+	for i := int32(0); i < array.Length(); i++ {
+		//unsafe pointer compare
+		if unsafe.Pointer(array.Get(i)) == unsafe.Pointer(item) {
+			return i
+		}
+	}
+	panic(fmt.Sprintf("MemArray.IndexOf item not found: %v", *item))
+}

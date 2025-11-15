@@ -62,6 +62,10 @@ func Clay__Array_Reset[T any](array *Clay__Array[T]) {
 	mem.MArray_Reset(array)
 }
 
+func Clay__Array_IndexOf[T any](array *Clay__Array[T], item *T) int32 {
+	return mem.MArray_IndexOf(array, item)
+}
+
 // typeName arrayName##_RemoveSwapback(arrayName *array, int32_t index) {                                          \
 // 	if (Clay__Array_RangeCheck(index, array->length)) {                                                         \
 // 		array->length--;                                                                                        \

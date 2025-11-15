@@ -56,6 +56,18 @@ type Clay_RenderCommand struct {
 	CommandType Clay_RenderCommandType
 }
 
+func (c *Clay_RenderCommand) DebugString() string {
+	output := ""
+	output += "--------------------------------\n"
+	output += fmt.Sprintf("CommandType: %s\n", c.CommandType.String())
+	output += fmt.Sprintf("Id: %d\n", c.Id)
+	output += fmt.Sprintf("ZIndex: %d\n", c.ZIndex)
+	output += fmt.Sprintf("BoundingBox: %s\n", c.BoundingBox.String())
+	output += fmt.Sprintf("RenderData: %s\n", c.RenderData.String(c.CommandType))
+	output += fmt.Sprintf("UserData: %+v\n", c.UserData)
+	return output
+}
+
 type Clay_BoundingBox struct {
 	X      float32
 	Y      float32

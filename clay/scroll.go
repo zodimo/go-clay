@@ -1,5 +1,24 @@
 package clay
 
+func Clay_GetScrollOffset() Clay_Vector2 {
+	context := Clay_GetCurrentContext()
+	if context.BooleanWarnings.MaxElementsExceeded {
+		return Clay_Vector2{}
+	}
+	openLayoutElement := Clay__GetOpenLayoutElement()
+	// If the element has no id attached at this point, we need to generate one
+	if openLayoutElement.Id == 0 {
+		Clay__GenerateIdForAnonymousElement(openLayoutElement)
+	}
+	for i := int32(0); i < context.ScrollContainerDatas.Length(); i++ {
+		mapping := Clay__Array_Get(&context.ScrollContainerDatas, i)
+		if mapping.LayoutElement == openLayoutElement {
+			return mapping.ScrollPosition
+		}
+	}
+	return Clay_Vector2{0, 0}
+}
+
 func Clay_UpdateScrollContainers(enableDragScrolling bool, scrollDelta Clay_Vector2, deltaTime float32) {
 	context := Clay_GetCurrentContext()
 	isPointerActive := enableDragScrolling && (context.PointerInfo.State == CLAY_POINTER_DATA_PRESSED || context.PointerInfo.State == CLAY_POINTER_DATA_PRESSED_THIS_FRAME)

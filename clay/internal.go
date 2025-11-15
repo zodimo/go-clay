@@ -1277,6 +1277,13 @@ func Clay__AddMeasuredWord(word Clay__MeasuredWord, previousWord *Clay__Measured
 	}
 }
 
+func Clay__SetMaxMeasureTextCacheWordCount(maxMeasureTextCacheWordCount int32) {
+	context := Clay_GetCurrentContext()
+	if context != nil {
+		context.MaxMeasureTextCacheWordCount = maxMeasureTextCacheWordCount
+	}
+}
+
 func Clay__OpenTextElement(text Clay_String, textConfig *Clay_TextElementConfig) {
 	currentContext := Clay_GetCurrentContext()
 	if currentContext.LayoutElements.Length() == currentContext.LayoutElements.Capacity()-1 || currentContext.BooleanWarnings.MaxElementsExceeded {

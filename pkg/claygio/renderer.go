@@ -21,7 +21,10 @@ type Renderer interface {
 	Render(ops *op.Ops, commands []clay.Clay_RenderCommand)
 }
 type renderer struct {
-	fontManager *FontManager
+	fontManager       *FontManager
+	clippingContainer *ClippingContainer
+	clippingActive    bool
+	opCallStack       []op.CallOp
 }
 
 func NewRenderer(opts ...RendererOption) Renderer {
@@ -33,6 +36,7 @@ func NewRenderer(opts ...RendererOption) Renderer {
 	}
 	return &renderer{
 		fontManager: options.FontManager,
+		opCallStack: make([]op.CallOp, 0),
 	}
 }
 

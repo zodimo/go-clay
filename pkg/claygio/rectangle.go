@@ -20,21 +20,23 @@ type ShapedRect struct {
 }
 
 // renderRectangleWithBounds renders a rectangle using bounds from RenderCommand
-func RenderRectangleWithBounds(ops *op.Ops, cmd clay.Clay_RenderCommand) error {
+func RenderRectangleWithBounds(cmd clay.Clay_RenderCommand) op.CallOp {
 
 	rectangleData := cmd.RenderData.Rectangle
 	boundingBox := cmd.BoundingBox
 	// Check if corner radius is needed
 	if IsCornerRadiusZero(rectangleData.CornerRadius) {
-		return RenderSimpleRectangle(ops, boundingBox, cmd)
+		return RenderSimpleRectangle(boundingBox, cmd)
 	}
 
 	// Render rectangle with corner radius
-	return RenderRoundedRectangle(ops, boundingBox, cmd)
+	return RenderRoundedRectangle(boundingBox, cmd)
 }
 
 // renderSimpleRectangle renders a rectangle without corner radius
-func RenderSimpleRectangle(ops *op.Ops, bounds clay.Clay_BoundingBox, cmd clay.Clay_RenderCommand) error {
+func RenderSimpleRectangle(bounds clay.Clay_BoundingBox, cmd clay.Clay_RenderCommand) op.CallOp {
+	var ops op.Ops
+	opRecord := op.Record(&ops)
 	rectangleData := cmd.RenderData.Rectangle
 	// Convert bounds to Gio rectangle
 	rect := image.Rect(
@@ -45,14 +47,14 @@ func RenderSimpleRectangle(ops *op.Ops, bounds clay.Clay_BoundingBox, cmd clay.C
 	)
 
 	// Create clipping region
-	clipOp := clip.Rect(rect).Push(ops)
-	defer clipOp.Pop()
+	clipOp := clip.Rect(rect).Push(&ops)
 
 	// Apply color and paint
-	paint.ColorOp{Color: ClayToGioColor(rectangleData.BackgroundColor)}.Add(ops)
-	paint.PaintOp{}.Add(ops)
+	paint.ColorOp{Color: ClayToGioColor(rectangleData.BackgroundColor)}.Add(&ops)
+	paint.PaintOp{}.Add(&ops)
 
-	return nil
+	clipOp.Pop()
+	return opRecord.Stop()
 }
 
 // Path generates a clip path for the shaped rectangle
@@ -130,7 +132,9 @@ func (s ShapedRect) Path(gtx layout.Context) clip.PathSpec {
 }
 
 // renderRoundedRectangle renders a rectangle with corner radius
-func RenderRoundedRectangle(ops *op.Ops, bounds clay.Clay_BoundingBox, cmd clay.Clay_RenderCommand) error {
+func RenderRoundedRectangle(bounds clay.Clay_BoundingBox, cmd clay.Clay_RenderCommand) op.CallOp {
+	var ops op.Ops
+	opRecord := op.Record(&ops)
 	rectangleData := cmd.RenderData.Rectangle
 	// Create shaped rectangle with corner radius
 	shapedRect := ShapedRect{
@@ -141,7 +145,7 @@ func RenderRoundedRectangle(ops *op.Ops, bounds clay.Clay_BoundingBox, cmd clay.
 
 	// Create layout context for path generation
 	gtx := layout.Context{
-		Ops: ops,
+		Ops: &ops,
 		Constraints: layout.Constraints{
 			Max: image.Pt(int(bounds.Width), int(bounds.Height)),
 		},
@@ -149,12 +153,12 @@ func RenderRoundedRectangle(ops *op.Ops, bounds clay.Clay_BoundingBox, cmd clay.
 
 	// Create clipping path with rounded corners
 	pathSpec := shapedRect.Path(gtx)
-	clipOp := clip.Outline{Path: pathSpec}.Op().Push(ops)
-	defer clipOp.Pop()
+	clipOp := clip.Outline{Path: pathSpec}.Op().Push(&ops)
 
 	// Apply color and paint
-	paint.ColorOp{Color: ClayToGioColor(rectangleData.BackgroundColor)}.Add(ops)
-	paint.PaintOp{}.Add(ops)
+	paint.ColorOp{Color: ClayToGioColor(rectangleData.BackgroundColor)}.Add(&ops)
+	paint.PaintOp{}.Add(&ops)
 
-	return nil
+	clipOp.Pop()
+	return opRecord.Stop()
 }

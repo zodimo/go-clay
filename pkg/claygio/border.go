@@ -12,7 +12,9 @@ import (
 )
 
 // RenderBorderWithBounds renders a border using bounds from RenderCommand
-func RenderBorderWithBounds(ops *op.Ops, cmd clay.Clay_RenderCommand) error {
+func RenderBorderWithBounds(cmd clay.Clay_RenderCommand) op.CallOp {
+	var ops op.Ops
+	opRecord := op.Record(&ops)
 	borderData := cmd.RenderData.Border
 	boundingBox := cmd.BoundingBox
 
@@ -29,9 +31,9 @@ func RenderBorderWithBounds(ops *op.Ops, cmd clay.Clay_RenderCommand) error {
 
 	// Render border using bounds
 	callOp := RenderBorderSides(rect, borderData.Width, gioColor, borderData.CornerRadius)
-	callOp.Add(ops)
+	callOp.Add(&ops)
 
-	return nil
+	return opRecord.Stop()
 }
 
 // RenderBorderSides renders borders with potentially different widths per side.

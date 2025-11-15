@@ -14,7 +14,9 @@ import (
 )
 
 // renderTextWithBounds renders text using bounds from RenderCommand
-func (r *renderer) RenderTextWithBounds(ops *op.Ops, renderCommand clay.Clay_RenderCommand) error {
+func (r *renderer) RenderTextWithBounds(renderCommand clay.Clay_RenderCommand) op.CallOp {
+	var ops op.Ops
+	opRecord := op.Record(&ops)
 	bounds := renderCommand.BoundingBox
 	cmd := renderCommand.RenderData.Text
 	// Validate bounds
@@ -33,8 +35,8 @@ func (r *renderer) RenderTextWithBounds(ops *op.Ops, renderCommand clay.Clay_Ren
 	shaper := r.fontManager.GetShaper()
 
 	// Create color operation
-	colorMacro := op.Record(ops)
-	paint.ColorOp{Color: ClayToGioColor(cmd.TextColor)}.Add(ops)
+	colorMacro := op.Record(&ops)
+	paint.ColorOp{Color: ClayToGioColor(cmd.TextColor)}.Add(&ops)
 	colorCallOp := colorMacro.Stop()
 
 	// Create label with Clay parameters
@@ -46,12 +48,11 @@ func (r *renderer) RenderTextWithBounds(ops *op.Ops, renderCommand clay.Clay_Ren
 	}
 
 	// Position within bounds
-	stack := op.Offset(image.Pt(int(bounds.X), int(bounds.Y))).Push(ops)
-	defer stack.Pop()
+	stack := op.Offset(image.Pt(int(bounds.X), int(bounds.Y))).Push(&ops)
 
 	// Create layout context with bounds constraints
 	gtx := layout.Context{
-		Ops: ops,
+		Ops: &ops,
 		Constraints: layout.Constraints{
 			Max: image.Pt(int(bounds.Width), int(bounds.Height)),
 		},
@@ -61,5 +62,7 @@ func (r *renderer) RenderTextWithBounds(ops *op.Ops, renderCommand clay.Clay_Ren
 	// Render text using gio pattern
 	label.Layout(gtx, shaper, fontObj, unit.Sp(cmd.FontSize), cmd.StringContents.String(), colorCallOp)
 
-	return nil
+	stack.Pop()
+
+	return opRecord.Stop()
 }

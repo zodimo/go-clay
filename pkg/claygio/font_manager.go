@@ -7,6 +7,19 @@ import (
 )
 
 // FontManager manages fonts and text shaping for the renderer
+
+type FontManagerOptions struct {
+	FontCollection []font.FontFace
+}
+
+type FontManagerOption func(*FontManagerOptions)
+
+func FontManagerWithFontCollection(fontCollection []font.FontFace) FontManagerOption {
+	return func(o *FontManagerOptions) {
+		o.FontCollection = fontCollection
+	}
+}
+
 type FontManager struct {
 	shaper      *text.Shaper
 	fontCache   map[uint16]font.Font
@@ -14,10 +27,17 @@ type FontManager struct {
 }
 
 // NewFontManager creates a new font manager with default fonts
-func NewFontManager() *FontManager {
+func NewFontManager(opts ...FontManagerOption) *FontManager {
+	options := &FontManagerOptions{
+		FontCollection: gofont.Collection(),
+	}
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	// Create text shaper with default fonts
 	shaperOptions := []text.ShaperOption{
-		text.WithCollection(gofont.Collection()),
+		text.WithCollection(options.FontCollection),
 	}
 
 	fm := &FontManager{

@@ -76,9 +76,17 @@ func Clay_SetPointerState(position Clay_Vector2, isPointerDown bool) {
 					Clay__Array_Shrink(&dfsBuffer, 1)
 					continue
 				}
-				for i := currentElement.ChildrenOrTextContent.Children.Length - 1; i >= 0; i-- {
+				for i := int32(currentElement.ChildrenOrTextContent.Children.Length) - 1; i >= 0; i-- {
+					// Ensure TreeNodeVisited is large enough before adding to dfsBuffer
+					if context.TreeNodeVisited.Length() < dfsBuffer.Length() {
+						panic("treeNodeVisited[] is not the same length as dfsBuffer")
+					}
+					if context.TreeNodeVisited.Length() == dfsBuffer.Length() {
+						Clay__Array_Add(&context.TreeNodeVisited, false)
+					} else {
+						Clay__Array_Set(&context.TreeNodeVisited, dfsBuffer.Length(), false)
+					}
 					Clay__Array_Add(&dfsBuffer, currentElement.ChildrenOrTextContent.Children.Elements[i])
-					Clay__Array_Set(&context.TreeNodeVisited, dfsBuffer.Length()-1, false) // TODO needs to be ranged checked
 				}
 			} else {
 				Clay__Array_Shrink(&dfsBuffer, 1)

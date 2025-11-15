@@ -192,7 +192,40 @@ type Clay_ElementDeclaration struct {
 	UserData        interface{}
 }
 
-func Clay_Initialize(arena Clay_Arena, layoutDimensions Clay_Dimensions, errorHandler Clay_ErrorHandler) *Clay_Context {
+type ClayOptions struct {
+	MaxElementCount              int32
+	MaxMeasureTextCacheWordCount int32
+	ErrorHandler                 Clay_ErrorHandler
+}
+type ClayOption func(*ClayOptions)
+
+func Clay_WithMaxElementCount(maxElementCount int32) ClayOption {
+	return func(options *ClayOptions) {
+		options.MaxElementCount = maxElementCount
+	}
+}
+
+func Clay_WithMaxMeasureTextCacheWordCount(maxMeasureTextCacheWordCount int32) ClayOption {
+	return func(options *ClayOptions) {
+		options.MaxMeasureTextCacheWordCount = maxMeasureTextCacheWordCount
+	}
+}
+func Clay_WithErrorHandler(errorHandler Clay_ErrorHandler) ClayOption {
+	return func(options *ClayOptions) {
+		options.ErrorHandler = errorHandler
+	}
+}
+
+func Clay_Initialize(arena Clay_Arena, layoutDimensions Clay_Dimensions, options ...ClayOption) *Clay_Context {
+
+	opts := &ClayOptions{
+		MaxElementCount:              Clay__defaultMaxElementCount,
+		MaxMeasureTextCacheWordCount: Clay__defaultMaxMeasureTextWordCacheCount,
+		ErrorHandler:                 Clay__ErrorHandlerFunctionDefault,
+	}
+	for _, option := range options {
+		option(opts)
+	}
 
 	clay_Context := Clay__Context_Allocate_Arena(&arena)
 	if clay_Context == nil {
@@ -202,15 +235,11 @@ func Clay_Initialize(arena Clay_Arena, layoutDimensions Clay_Dimensions, errorHa
 	oldContext := Clay_GetCurrentContext()
 
 	newContext := &Clay_Context{
-		MaxElementCount:              Clay__defaultMaxElementCount,
-		MaxMeasureTextCacheWordCount: Clay__defaultMaxMeasureTextWordCacheCount,
-		ErrorHandler:                 Clay__ErrorHandlerFunctionDefault,
+		MaxElementCount:              opts.MaxElementCount,
+		MaxMeasureTextCacheWordCount: opts.MaxMeasureTextCacheWordCount,
+		ErrorHandler:                 opts.ErrorHandler,
 		LayoutDimensions:             layoutDimensions,
 		InternalArena:                arena,
-	}
-
-	if errorHandler.ErrorHandlerFunction != nil {
-		newContext.ErrorHandler = errorHandler
 	}
 
 	if oldContext != nil {

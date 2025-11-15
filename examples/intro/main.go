@@ -150,14 +150,16 @@ func run(w *app.Window) error {
 						Height: float32(gtx.Constraints.Max.Y),
 					},
 					// gioui.NewMeasurer(),
-					clay.NewErrorHandler(func(errorData clay.Clay_ErrorData) {
+					clay.Clay_WithErrorHandler(clay.NewErrorHandler(func(errorData clay.Clay_ErrorData) {
 						fmt.Printf("ErrorMessage: %s\n", errorData.ErrorText.String())
 						fmt.Printf("ErrorType: %s\n", errorData.ErrorType.String())
 						fmt.Printf("UserData: %v\n", errorData.UserData)
-					}, nil),
+					}, nil)),
+					clay.Clay_WithMaxMeasureTextCacheWordCount(32000),
 				)
 				// clay.Clay_SetDebugModeEnabled(true)
 				clay.Clay_SetMeasureTextFunction(clayGioEngine.MeasureText, gtx)
+				clay.Clay_SetMaxMeasureTextCacheWordCount(32000)
 				clayReady = true
 			}
 
@@ -255,10 +257,10 @@ func run(w *app.Window) error {
 							},
 							BackgroundColor: panelConfig.Color,
 							CornerRadius:    panelConfig.CornerRadius,
-							Clip: clay.Clay_ClipElementConfig{
-								Vertical:    true,
-								ChildOffset: clay.Clay_GetScrollOffset(),
-							},
+							// Clip: clay.Clay_ClipElementConfig{
+							// 	Vertical:    true,
+							// 	ChildOffset: clay.Clay_GetScrollOffset(),
+							// },
 						},
 						RenderDocumentContent(SelectedDocumentIndex)...,
 					),

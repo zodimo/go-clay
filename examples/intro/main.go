@@ -7,6 +7,7 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
+	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
 
@@ -47,24 +48,50 @@ type Document struct {
 
 var COLOR_WHITE = clay.CLAY_RGBA(255, 255, 255, 255)
 
-func RenderDocumentTitles() []clay.ClayContainer {
+func RenderDocumentTitles(gtx layout.Context) []clay.ClayContainer {
 	containers := []clay.ClayContainer{}
-	for _, document := range Documents {
-		button := clay.CLAY(
-			"",
-			clay.Clay_ElementDeclaration{
-				Layout: clay.Clay_LayoutConfig{
-					Padding: clay.Clay_Padding{
-						Left:  16,
-						Right: 16,
+	for i, document := range Documents {
+		var button clay.ClayContainer
+		if i == SelectedDocumentIndex {
+			button = clay.CLAY(
+				"",
+				clay.Clay_ElementDeclaration{
+					Layout: clay.Clay_LayoutConfig{
+						Padding: clay.CLAY_PADDING_ALL(16),
+						Sizing: clay.Clay_Sizing{
+							Width: clay.CLAY_SIZING_GROW(clay.Clay_SizingMinMax{Min: 0}),
+						},
+					},
+					CornerRadius:    clay.CLAY_CORNER_RADIUS(5),
+					BackgroundColor: clay.CLAY_RGBA(120, 120, 120, 255), //grey
+					// OnHover: clay.Clay_OnHoverConfig{
+					// 	OnHoverFunction: handlerSidebarClick,
+					// 	UserData:        SidebarClickData{DocumentIndex: i, Gtx: gtx},
+					// },
+				},
+				clay.CLAY_TEXT(document.Title,
+					clay.TextWithFontSize(16),
+					clay.TextWithColor(COLOR_WHITE),
+				))
+		} else {
+			button = clay.CLAY(
+				"",
+				clay.Clay_ElementDeclaration{
+					Layout: clay.Clay_LayoutConfig{
+						Padding: clay.CLAY_PADDING_ALL(16),
+					},
+					CornerRadius: clay.CLAY_CORNER_RADIUS(5),
+					OnHover: clay.Clay_OnHoverConfig{
+						OnHoverFunction: handlerSidebarClick,
+						UserData:        SidebarClickData{DocumentIndex: i, Gtx: gtx},
 					},
 				},
-				CornerRadius: clay.CLAY_CORNER_RADIUS(5),
-			},
-			clay.CLAY_TEXT(document.Title,
-				clay.TextWithFontSize(16),
-				clay.TextWithColor(COLOR_WHITE),
-			))
+				clay.CLAY_TEXT(document.Title,
+					clay.TextWithFontSize(16),
+					clay.TextWithColor(COLOR_WHITE),
+				))
+		}
+
 		containers = append(containers, button)
 	}
 	return containers
@@ -84,12 +111,6 @@ func RenderHeaderButton(text string) clay.ClayContainer {
 			},
 			BackgroundColor: clay.CLAY_RGBA(140, 140, 150, 255), //grey
 			CornerRadius:    clay.CLAY_CORNER_RADIUS(5),
-			OnHover: clay.Clay_OnHoverConfig{
-				OnHoverFunction: func(elementId clay.Clay_ElementId, pointerInfo clay.Clay_PointerData, userData any) {
-					fmt.Printf("OnHoverFunction called for element %s\n", elementId.Id)
-				},
-				UserData: nil,
-			},
 		},
 		clay.CLAY_TEXT(text,
 			clay.TextWithFontSize(16),
@@ -117,6 +138,23 @@ func RenderDocumentContent(index int) []clay.ClayContainer {
 	))
 
 	return containers
+}
+
+type SidebarClickData struct {
+	DocumentIndex int
+	Gtx           layout.Context
+}
+
+func handlerSidebarClick(elementId clay.Clay_ElementId, pointerInfo clay.Clay_PointerData, userData any) {
+	clickData, ok := userData.(SidebarClickData)
+	if !ok {
+		panic("userData is not a SidebarClickData")
+	}
+	clicked := pointerInfo.State == clay.CLAY_POINTER_DATA_PRESSED_THIS_FRAME
+	if clicked {
+		fmt.Printf("Sidebar clicked: %v for element %d\n", clicked, clickData.DocumentIndex)
+		SelectedDocumentIndex = clickData.DocumentIndex
+	}
 }
 
 func run(w *app.Window) error {
@@ -253,7 +291,7 @@ func run(w *app.Window) error {
 						},
 
 						// Render document title here
-						RenderDocumentTitles()...,
+						RenderDocumentTitles(gtx)...,
 					),
 					clay.CLAY(
 						"MainContent",
@@ -289,6 +327,7 @@ func run(w *app.Window) error {
 			}
 
 			clayGioEngine.Render(gtx.Ops, commands)
+			gtx.Execute(op.InvalidateCmd{At: gtx.Now})
 			e.Frame(gtx.Ops)
 		}
 	}

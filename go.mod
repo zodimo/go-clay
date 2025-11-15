@@ -2,16 +2,18 @@ module github.com/zodimo/clay-go
 
 go 1.24.3
 
-tool github.com/xlab/c-for-go
-
-require (
-	gioui.org v0.9.0
+tool (
+	github.com/hajimehoshi/wasmserve
+	github.com/xlab/c-for-go
 )
+
+require gioui.org v0.9.0
 
 require (
 	gioui.org/shader v1.0.8 // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/go-text/typesetting v0.3.0 // indirect
+	github.com/hajimehoshi/wasmserve v1.2.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/tj/go-spin v1.1.0 // indirect
 	github.com/xlab/c-for-go v1.3.0 // indirect

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"gioui.org/app"
+	"gioui.org/font/gofont"
 	"gioui.org/op"
 	"gioui.org/unit"
 
@@ -42,7 +43,9 @@ func run(w *app.Window) error {
 	if err != nil {
 		return err
 	}
-	fontManager := claygio.NewFontManager()
+
+	fontCollection := gofont.Collection()
+	fontManager := claygio.NewFontManager(claygio.FontManagerWithFontCollection(fontCollection))
 
 	measurer := claygio.NewMeasurer(claygio.MeasurerWithFontManager(fontManager))
 	renderer := claygio.NewRenderer(claygio.RendererWithFontManager(fontManager))
@@ -89,7 +92,7 @@ func run(w *app.Window) error {
 					Layout: clay.Clay_LayoutConfig{
 						Sizing: clay.Clay_Sizing{
 							Width:  clay.CLAY_SIZING_PERCENT(1),
-							Height: clay.CLAY_SIZING_PERCENT(0.5),
+							Height: clay.CLAY_SIZING_PERCENT(1),
 						},
 						Padding:         clay.CLAY_PADDING_ALL(40),
 						LayoutDirection: clay.CLAY_TOP_TO_BOTTOM,

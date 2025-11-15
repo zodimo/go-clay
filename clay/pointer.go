@@ -138,3 +138,21 @@ func Clay_OnHover(onHoverFunction Clay_OnHoverFunction, userData any) {
 	hashMapItem.OnHoverFunction = onHoverFunction
 	hashMapItem.HoverFunctionUserData = userData
 }
+
+func Clay_Hovered() bool {
+	context := Clay_GetCurrentContext()
+	if context.BooleanWarnings.MaxElementsExceeded {
+		return false
+	}
+	openLayoutElement := Clay__GetOpenLayoutElement()
+	// If the element has no id attached at this point, we need to generate one
+	if openLayoutElement.Id == 0 {
+		Clay__GenerateIdForAnonymousElement(openLayoutElement)
+	}
+	for i := int32(0); i < context.PointerOverIds.Length(); i++ {
+		if Clay__Array_GetValue(&context.PointerOverIds, i).Id == openLayoutElement.Id {
+			return true
+		}
+	}
+	return false
+}

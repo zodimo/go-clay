@@ -5,7 +5,6 @@ import (
 	"math"
 
 	"gioui.org/f32"
-	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
@@ -58,7 +57,7 @@ func RenderSimpleRectangle(bounds clay.Clay_BoundingBox, cmd clay.Clay_RenderCom
 }
 
 // Path generates a clip path for the shaped rectangle
-func (s ShapedRect) Path(gtx layout.Context) clip.PathSpec {
+func (s ShapedRect) Path(ops *op.Ops) clip.PathSpec {
 	rMinP := s.MinPoint.Sub(f32.Pt(s.Offset, s.Offset))
 	rMaxP := s.MaxPoint.Add(f32.Pt(s.Offset, s.Offset))
 
@@ -80,7 +79,7 @@ func (s ShapedRect) Path(gtx layout.Context) clip.PathSpec {
 
 	// Build path with rounded corners
 	var path clip.Path
-	path.Begin(gtx.Ops)
+	path.Begin(ops)
 
 	// Top edge
 	path.MoveTo(f32.Point{X: rMinP.X + ts, Y: rMinP.Y})
@@ -143,16 +142,8 @@ func RenderRoundedRectangle(bounds clay.Clay_BoundingBox, cmd clay.Clay_RenderCo
 		Shapes:   MapClayCornerRadius(rectangleData.CornerRadius),
 	}
 
-	// Create layout context for path generation
-	gtx := layout.Context{
-		Ops: &ops,
-		Constraints: layout.Constraints{
-			Max: image.Pt(int(bounds.Width), int(bounds.Height)),
-		},
-	}
-
 	// Create clipping path with rounded corners
-	pathSpec := shapedRect.Path(gtx)
+	pathSpec := shapedRect.Path(&ops)
 	clipOp := clip.Outline{Path: pathSpec}.Op().Push(&ops)
 
 	// Apply color and paint

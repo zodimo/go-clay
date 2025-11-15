@@ -7,14 +7,14 @@ import (
 
 // map all render variations to op.ops
 
-func Render(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
+func (r *Renderer) render(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
 	switch renderCommand.CommandType {
 	case clay.CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
 		RenderRectangle(ops, renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_BORDER:
 		RenderBorder(renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_TEXT:
-		RenderText(ops, renderCommand)
+		r.RenderText(ops, renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_IMAGE:
 		RenderImage(renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
@@ -37,8 +37,8 @@ func RenderBorder(renderCommand clay.Clay_RenderCommand) op.Ops {
 	return ops
 }
 
-func RenderText(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
-	RenderTextWithBounds(ops, renderCommand)
+func (r *Renderer) RenderText(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
+	r.RenderTextWithBounds(ops, renderCommand)
 }
 
 func RenderImage(renderCommand clay.Clay_RenderCommand) op.Ops {

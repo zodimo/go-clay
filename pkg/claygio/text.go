@@ -14,7 +14,7 @@ import (
 )
 
 // renderTextWithBounds renders text using bounds from RenderCommand
-func RenderTextWithBounds(ops *op.Ops, renderCommand clay.Clay_RenderCommand) error {
+func (r *Renderer) RenderTextWithBounds(ops *op.Ops, renderCommand clay.Clay_RenderCommand) error {
 	bounds := renderCommand.BoundingBox
 	cmd := renderCommand.RenderData.Text
 	// Validate bounds
@@ -28,10 +28,9 @@ func RenderTextWithBounds(ops *op.Ops, renderCommand clay.Clay_RenderCommand) er
 		panic("Empty text")
 	}
 
-	fontManager := NewFontManager()
 	// Get font and shaper from font manager
-	fontObj := fontManager.GetFont(cmd.FontId)
-	shaper := fontManager.GetShaper()
+	fontObj := r.fontManager.GetFont(cmd.FontId)
+	shaper := r.fontManager.GetShaper()
 
 	// Create color operation
 	colorMacro := op.Record(ops)

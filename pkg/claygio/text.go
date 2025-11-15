@@ -41,9 +41,9 @@ func RenderTextWithBounds(ops *op.Ops, renderCommand clay.Clay_RenderCommand) er
 	// Create label with Clay parameters
 	label := widget.Label{
 		Alignment:  text.Start, // positions
-		MaxLines:   0,          // Unlimited - can be set from Clay command
+		MaxLines:   1,          // Unlimited - can be set from Clay command
 		LineHeight: unit.Sp(cmd.LineHeight),
-		WrapPolicy: text.WrapWords,
+		WrapPolicy: text.WrapGraphemes,
 	}
 
 	// Position within bounds

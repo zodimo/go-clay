@@ -1,9 +1,12 @@
 package claygio
 
 import (
-	"gioui.org/font/gofont"
+	"image"
+
 	"gioui.org/io/system"
+	"gioui.org/layout"
 	"gioui.org/text"
+	"gioui.org/unit"
 	"github.com/zodimo/clay-go/clay"
 	"golang.org/x/image/math/fixed"
 )
@@ -13,112 +16,114 @@ type TextMeasurer interface {
 }
 
 type measurer struct {
-	shaper  *text.Shaper
 	options *MeasurerOptions
 }
 
 type MeasurerOptions struct {
-	Collection      []text.FontFace
-	LineHeightScale float32
+	FontManager *FontManager
 }
 
 type MeasurerOption func(*MeasurerOptions)
 
-func MeasurerWithCollection(collection []text.FontFace) MeasurerOption {
+func MeasurerWithFontManager(fontManager *FontManager) MeasurerOption {
 	return func(o *MeasurerOptions) {
-		o.Collection = collection
-	}
-}
-func MeasurerWithLineHeightScale(lineHeightScale float32) MeasurerOption {
-	return func(o *MeasurerOptions) {
-		o.LineHeightScale = lineHeightScale
+		o.FontManager = fontManager
 	}
 }
 
 // NewMeasurer initializes and returns a clay.TextMeasurer using Gioui's engine.
 func NewMeasurer(opts ...MeasurerOption) TextMeasurer {
 	options := &MeasurerOptions{
-		Collection:      gofont.Collection(),
-		LineHeightScale: 1.0,
+		FontManager: NewFontManager(),
 	}
 	for _, opt := range opts {
 		opt(options)
 	}
-	// Create the shaper, passing the font collection.
+
 	return &measurer{
-		shaper:  text.NewShaper(text.WithCollection(options.Collection)),
 		options: options,
 	}
 }
-func (m *measurer) MeasureText(textToMeasureSlice clay.Clay_StringSlice, cfg *clay.Clay_TextElementConfig, userData interface{}) clay.Clay_Dimensions {
 
+func (m *measurer) MeasureText(textToMeasureSlice clay.Clay_StringSlice, cfg *clay.Clay_TextElementConfig, userData interface{}) clay.Clay_Dimensions {
 	textToMeasure := textToMeasureSlice.String()
 
-	// Map clay config to Gioui's layout parameters.
+	gtx, ok := userData.(layout.Context)
+	if !ok {
+		panic("userData is not a layout.Context")
+	}
+
+	// Get font using the same method as the renderer (FontManager)
+	fontManager := m.options.FontManager
+	fontObj := fontManager.GetFont(cfg.FontId)
+
+	textSize := fixed.I(gtx.Sp(unit.Sp(cfg.FontSize)))
+	lineHeight := fixed.I(gtx.Sp(unit.Sp(cfg.LineHeight)))
+
+	// Map clay wrap mode to Gioui wrap policy
+	var wrapPolicy text.WrapPolicy
+	switch cfg.WrapMode {
+	case clay.CLAY_TEXT_WRAP_NONE:
+		wrapPolicy = text.WrapWords // For measurement, we still need some wrapping, but use large MaxWidth
+	case clay.CLAY_TEXT_WRAP_NEWLINES:
+		wrapPolicy = text.WrapWords
+	case clay.CLAY_TEXT_WRAP_WORDS:
+		wrapPolicy = text.WrapGraphemes
+	default:
+		wrapPolicy = text.WrapGraphemes
+	}
+
+	// Map clay config to Gioui's layout parameters
+	// For measurement, we want to measure the full text without truncation
+	// so the layout system can allocate enough space. The renderer uses MaxLines: 1
+	// but if we allocate enough space, it won't truncate.
 	params := text.Parameters{
-		// Use a default font face (e.g., the first in the gofont collection).
-		Font:            m.options.Collection[0].Font,
-		Alignment:       text.Start,
-		LineHeightScale: m.options.LineHeightScale,
-
+		Font:       fontObj,
+		Alignment:  text.Start,
+		LineHeight: lineHeight,
+		MaxLines:   0, // 0 means unlimited - measure full text
 		// Set a very large MaxWidth to ensure the text is measured as a single line
-		// (unless the caller specifies max width via a different clay config field).
-		MaxWidth: 1000000,
-		PxPerEm:  fixed.Int26_6(cfg.FontSize),
-
-		// Locale is needed for correct text direction/shaping (Bidi, complex scripts).
+		MaxWidth:   1000000,
+		PxPerEm:    textSize,
 		Locale:     system.Locale{},
-		WrapPolicy: text.WrapGraphemes,
+		WrapPolicy: wrapPolicy,
 	}
 
-	// Perform the text layout.
-	m.shaper.LayoutString(params, textToMeasure)
+	// Perform the text layout - same as Label.LayoutDetailed
+	fontManager.GetShaper().LayoutString(params, textToMeasure)
 
-	var (
-		lineStartX fixed.Int26_6
-		maxWidth   fixed.Int26_6 = 0
-		maxHeight  fixed.Int26_6 = 0
-		lineCount  int           = 1 // The number of lines.
+	// Calculate bounds the same way as textIterator.processGlyph in Label
+	var bounds image.Rectangle
+	var first bool = true
 
-		isFirstGlyph = true
-	)
-
-	// Iterate through the shaped glyphs to find the dimensions.
-	for {
-		g, ok := m.shaper.NextGlyph()
-		if !ok {
-			break
-		}
-		if isFirstGlyph {
-			lineStartX = g.X
-			isFirstGlyph = false
+	// Iterate through all glyphs until NextGlyph returns false (matching Label's iteration)
+	for g, ok := fontManager.GetShaper().NextGlyph(); ok; g, ok = fontManager.GetShaper().NextGlyph() {
+		// Calculate logical bounds for this glyph - same as Label's processGlyph
+		logicalBounds := image.Rectangle{
+			Min: image.Pt(g.X.Floor(), int(g.Y)-g.Ascent.Ceil()),
+			Max: image.Pt((g.X + g.Advance).Ceil(), int(g.Y)+g.Descent.Ceil()),
 		}
 
-		// The width is the position of the glyph (g.X) plus its advance width (g.Advance).
-		currentLineEnd := g.X + g.Advance
-		if currentLineEnd > maxWidth {
-			maxWidth = currentLineEnd
-		}
-		// fmt.Printf("g: %+v\n", g)
-		height := g.Ascent + g.Descent + g.Offset.Y
-		if height > maxHeight {
-			maxHeight = height
+		if first {
+			first = false
+			bounds = logicalBounds
+		} else {
+			// Accumulate bounds by taking min/max - same as Label
+			bounds.Min.X = min(bounds.Min.X, logicalBounds.Min.X)
+			bounds.Min.Y = min(bounds.Min.Y, logicalBounds.Min.Y)
+			bounds.Max.X = max(bounds.Max.X, logicalBounds.Max.X)
+			bounds.Max.Y = max(bounds.Max.Y, logicalBounds.Max.Y)
 		}
 	}
 
-	scaledMaxHeight := fixed.Int26_6(maxHeight) * fixed.Int26_6(m.options.LineHeightScale)
-	if scaledMaxHeight <= 0 {
-		// fmt.Printf("scaledMaxHeight <= 0, using default: %d, lineHeightScale: %f\n", cfg.FontSize, m.options.LineHeightScale)
-		scaledMaxHeight = fixed.Int26_6(cfg.FontSize) * fixed.Int26_6(m.options.LineHeightScale)
-	}
-	totalHeight := float64(scaledMaxHeight) * float64(lineCount)
-	totalWidth := float64(maxWidth - lineStartX)
+	// Get the size from bounds - same as Label returns it.bounds.Size()
+	size := bounds.Size()
 
-	// fmt.Printf("totalWidth: %f, totalHeight: %f\n", totalWidth, totalHeight)
+	// fmt.Printf("bounds: %+v, size: %+v\n", bounds, size)
 
-	// Convert the dimensions from fixed-point (1/64th units) back to float32 (DP).
+	// Convert to float32 dimensions
 	return clay.Clay_Dimensions{
-		Width:  float32(totalWidth),
-		Height: float32(totalHeight),
+		Width:  float32(size.X),
+		Height: float32(size.Y),
 	}
 }

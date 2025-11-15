@@ -70,7 +70,7 @@ func run(w *app.Window) error {
 					}, nil),
 				)
 				// clay.Clay_SetDebugModeEnabled(true)
-				clay.Clay_SetMeasureTextFunction(measurer.MeasureText, nil)
+				clay.Clay_SetMeasureTextFunction(measurer.MeasureText, gtx)
 				clayReady = true
 			}
 
@@ -128,7 +128,7 @@ func run(w *app.Window) error {
 						BackgroundColor: clay.Clay_Color{R: 0.2, G: 0.2, B: 0.9, A: 1},
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
-					clay.CLAY_TEXT("Hello, world!", clay.TextWithFontSize(24)),
+					clay.CLAY_TEXT("good, morning!"),
 				),
 			)
 

@@ -150,7 +150,7 @@ func Clay_Hovered() bool {
 		Clay__GenerateIdForAnonymousElement(openLayoutElement)
 	}
 	for i := int32(0); i < context.PointerOverIds.Length(); i++ {
-		if Clay__Array_GetValue(&context.PointerOverIds, i).Id == openLayoutElement.Id {
+		if Clay__Array_Get(&context.PointerOverIds, i).Id == openLayoutElement.Id {
 			return true
 		}
 	}

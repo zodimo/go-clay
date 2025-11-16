@@ -10,7 +10,3 @@ func UintptrToPtr[T any](basePtr uintptr, address uintptr) *T {
 func ArenaPtrToPtr[T any](arena Arena, address uintptr) *T {
 	return UintptrToPtr[T](uintptr(unsafe.Pointer(arena.basePtr)), address)
 }
-
-// func UintptrToPtrSliceUnsafe[T any](address uintptr) *[]T {
-// 	return (*[]T)(unsafe.Pointer(address))
-// }

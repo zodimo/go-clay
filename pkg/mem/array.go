@@ -202,18 +202,6 @@ func NewMemArray[T any](capacity int32, options ...MemArrayOption[T]) MemArray[T
 		option(&opts)
 	}
 
-	// zero := new(T)
-	// size := unsafe.Sizeof(*zero)
-	// internalArrayAddress, err := opts.Arena.Array_Allocate_Arena(capacity, uint32(size))
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// // Convert the address to a pointer to the first element
-	// firstElementPtr := UintptrToPtr[T](uintptr(unsafe.Pointer(opts.Arena.basePtr)), internalArrayAddress)
-	// // Create a slice from the pointer with the correct length and capacity
-	// internalArraySlice := unsafe.Slice(firstElementPtr, capacity)
-	// internalArray := &internalArraySlice
-
 	m := MemArray[T]{
 		isHashmap:     opts.IsHashmap,
 		ZeroValue:     opts.ZeroValue,

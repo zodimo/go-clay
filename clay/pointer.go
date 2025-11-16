@@ -125,7 +125,7 @@ func Clay_PointerOver(elementId Clay_ElementId) bool { // TODO return priority f
 	return false
 }
 
-func Clay_OnHover(onHoverFunction Clay_OnHoverFunction, userData any) {
+func Clay__OnHover(onHoverFunction Clay_OnHoverFunction, userData any) {
 	context := Clay_GetCurrentContext()
 	if context.BooleanWarnings.MaxElementsExceeded {
 		return

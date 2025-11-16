@@ -197,7 +197,6 @@ type Clay_ElementDeclaration struct {
 	Clip            Clay_ClipElementConfig
 	Border          Clay_BorderElementConfig
 	UserData        interface{}
-	OnHover         Clay_OnHoverConfig
 }
 
 type ClayOptions struct {

@@ -42,6 +42,14 @@ func CLAY(id string, elementDeclaration Clay_ElementDeclaration, content ...Clay
 	}
 }
 
+func CLAY_ON_HOVER(onHoverFunction Clay_OnHoverFunction, userData any) ClayContainer {
+	return &claContainer{
+		wrapper: func() {
+			Clay__OnHover(onHoverFunction, userData)
+		},
+	}
+}
+
 func CLAY_AUTO_ID(elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) ClayContainer {
 	return &claContainer{
 		wrapper: func() {

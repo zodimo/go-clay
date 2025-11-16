@@ -8,4 +8,4 @@ a non-exhaustive list of things...
 - [ ] scrolling
 - [ ] hover - conditional element declaration 
 - [ ] text - font handling
-- [ ] Clay__RenderDebugView
+- [ ] Clay__RenderDebugView - dependent on hover and scrolling

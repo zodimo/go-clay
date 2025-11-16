@@ -48,6 +48,10 @@ type Document struct {
 
 var COLOR_WHITE = clay.CLAY_RGBA(255, 255, 255, 255)
 
+func Call[T any](fn func() T) T {
+	return fn()
+}
+
 func RenderDocumentTitles(gtx layout.Context) []clay.ClayContainer {
 	containers := []clay.ClayContainer{}
 	for i, document := range Documents {
@@ -74,6 +78,7 @@ func RenderDocumentTitles(gtx layout.Context) []clay.ClayContainer {
 					clay.TextWithColor(COLOR_WHITE),
 				))
 		} else {
+
 			button = clay.CLAY(
 				"",
 				clay.Clay_ElementDeclaration{
@@ -81,11 +86,10 @@ func RenderDocumentTitles(gtx layout.Context) []clay.ClayContainer {
 						Padding: clay.CLAY_PADDING_ALL(16),
 					},
 					CornerRadius: clay.CLAY_CORNER_RADIUS(5),
-					OnHover: clay.Clay_OnHoverConfig{
-						OnHoverFunction: handlerSidebarClick,
-						UserData:        SidebarClickData{DocumentIndex: i, Gtx: gtx},
-					},
 				},
+				//element is only open from here... so calling onHover in the declaration will be for the parent element...
+
+				clay.CLAY_ON_HOVER(handlerSidebarClick, SidebarClickData{DocumentIndex: i, Gtx: gtx}),
 				clay.CLAY_TEXT(document.Title,
 					clay.TextWithFontSize(16),
 					clay.TextWithColor(COLOR_WHITE),
@@ -95,6 +99,96 @@ func RenderDocumentTitles(gtx layout.Context) []clay.ClayContainer {
 		containers = append(containers, button)
 	}
 	return containers
+}
+
+func RenderFileMenu(show bool) clay.ClayContainer {
+	if !show {
+		return nil
+	}
+
+	// we need the container, using hover and offset creates a pointer over continuity problem
+	return clay.CLAY("FileMenuContainer", clay.Clay_ElementDeclaration{
+		Floating: clay.Clay_FloatingElementConfig{
+			AttachTo: clay.CLAY_ATTACH_TO_PARENT,
+			AttachPoints: clay.Clay_FloatingAttachPoints{
+				// Element: clay.CLAY_ATTACH_POINT_LEFT_TOP,
+				Parent: clay.CLAY_ATTACH_POINT_LEFT_BOTTOM,
+			},
+		},
+		Layout: clay.Clay_LayoutConfig{
+			LayoutDirection: clay.CLAY_TOP_TO_BOTTOM,
+			Padding: clay.Clay_Padding{
+				Top: 8,
+			},
+		},
+	},
+		clay.CLAY(
+			"FileMenu",
+			clay.Clay_ElementDeclaration{
+				BackgroundColor: clay.CLAY_RGBA(40, 40, 40, 255), //grey
+				CornerRadius:    clay.CLAY_CORNER_RADIUS(8),
+				Layout: clay.Clay_LayoutConfig{
+					LayoutDirection: clay.CLAY_TOP_TO_BOTTOM,
+					ChildGap:        8,
+					Padding:         clay.CLAY_PADDING_ALL(16),
+					Sizing: clay.Clay_Sizing{
+						Width: clay.CLAY_SIZING_FIXED(200),
+					},
+				},
+			},
+			RenderDropdownMenuButton("New"),
+			RenderDropdownMenuButton("Open"),
+			RenderDropdownMenuButton("Close"),
+		),
+	)
+}
+
+func RenderFileButton() clay.ClayContainer {
+	fileMenuVisible := clay.Clay_PointerOver(clay.Clay_GetElementId("FileButton")) || clay.Clay_PointerOver(clay.Clay_GetElementId("FileMenuContainer")) || clay.Clay_PointerOver(clay.Clay_GetElementId("FileMenu"))
+	return clay.CLAY(
+		"FileButton",
+		clay.Clay_ElementDeclaration{
+			Layout: clay.Clay_LayoutConfig{
+				Padding: clay.Clay_Padding{
+					Left:   16,
+					Right:  16,
+					Top:    8,
+					Bottom: 8,
+				},
+			},
+			BackgroundColor: clay.CLAY_RGBA(140, 140, 150, 255), //grey
+			CornerRadius:    clay.CLAY_CORNER_RADIUS(5),
+		},
+		clay.CLAY_TEXT("File",
+			clay.TextWithFontSize(16),
+			clay.TextWithColor(clay.CLAY_RGBA(255, 255, 255, 255)),
+			clay.TextWithTextAlignment(clay.CLAY_TEXT_ALIGN_CENTER),
+			clay.TextWithFontId(1),
+		),
+		RenderFileMenu(fileMenuVisible),
+	)
+}
+
+func RenderDropdownMenuButton(text string) clay.ClayContainer {
+	return clay.CLAY(
+		"",
+		clay.Clay_ElementDeclaration{
+			Layout: clay.Clay_LayoutConfig{
+				Padding: clay.Clay_Padding{
+					Left:   16,
+					Right:  16,
+					Top:    8,
+					Bottom: 8,
+				},
+			},
+		},
+		clay.CLAY_TEXT(text,
+			clay.TextWithFontSize(16),
+			clay.TextWithColor(clay.CLAY_RGBA(255, 255, 255, 255)),
+			clay.TextWithTextAlignment(clay.CLAY_TEXT_ALIGN_CENTER),
+			clay.TextWithFontId(1),
+		),
+	)
 }
 
 func RenderHeaderButton(text string) clay.ClayContainer {
@@ -250,7 +344,7 @@ func run(w *app.Window) error {
 						BackgroundColor: panelConfig.Color,
 						CornerRadius:    panelConfig.CornerRadius,
 					},
-					RenderHeaderButton("File"),
+					RenderFileButton(),
 					RenderHeaderButton("Edit"),
 					clay.CLAY("spacer",
 						clay.Clay_ElementDeclaration{

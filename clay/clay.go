@@ -367,3 +367,8 @@ func Clay_SetLayoutDimensions(dimensions Clay_Dimensions) {
 	currentContext := Clay_GetCurrentContext()
 	currentContext.LayoutDimensions = dimensions
 }
+
+func Clay_GetElementId(id string) Clay_ElementId {
+	idString := CLAY_STRING(id)
+	return Clay__HashString(idString, 0)
+}

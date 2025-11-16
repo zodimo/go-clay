@@ -34,6 +34,9 @@ func CLAY(id string, elementDeclaration Clay_ElementDeclaration, content ...Clay
 				Clay__OpenElementWithId(elementID)
 				Clay__ConfigureOpenElement(elementDeclaration)
 				for _, content := range content {
+					if content == nil {
+						continue
+					}
 					content.Run()
 				}
 				Clay__CloseElement()
@@ -50,12 +53,25 @@ func CLAY_ON_HOVER(onHoverFunction Clay_OnHoverFunction, userData any) ClayConta
 	}
 }
 
+func CLAY_HOVERED(onHoveredFunction func()) ClayContainer {
+	return &claContainer{
+		wrapper: func() {
+			if Clay_Hovered() {
+				onHoveredFunction()
+			}
+		},
+	}
+}
+
 func CLAY_AUTO_ID(elementDeclaration Clay_ElementDeclaration, content ...ClayContainer) ClayContainer {
 	return &claContainer{
 		wrapper: func() {
 			Clay__OpenElement()
 			Clay__ConfigureOpenElement(elementDeclaration)
 			for _, content := range content {
+				if content == nil {
+					continue
+				}
 				content.Run()
 			}
 			Clay__CloseElement()

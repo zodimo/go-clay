@@ -819,21 +819,27 @@ func Clay__OpenElementWithId(elementId Clay_ElementId) {
 	Clay__AddHashMapItem(elementId, openLayoutElement)
 	Clay__Array_Add(&currentContext.LayoutElementIdStrings, elementId.StringId)
 	if currentContext.OpenClipElementStack.Length() > 0 {
-		if currentContext.LayoutElementClipElementIds.Length() == 0 {
-			Clay__Array_Add(&currentContext.LayoutElementClipElementIds, Clay__Array_GetValue(&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+		if currentContext.LayoutElementClipElementIds.Length() == currentContext.LayoutElements.Length()-1 {
+			Clay__Array_Add(
+				&currentContext.LayoutElementClipElementIds,
+				Clay__Array_GetValue(&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1),
+			)
 
+		} else if currentContext.LayoutElementClipElementIds.Length() == currentContext.LayoutElements.Length() {
+			Clay__Array_Set(
+				&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1,
+				Clay__Array_GetValue(&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1),
+			)
 		} else {
-			Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, Clay__Array_GetValue(&currentContext.OpenClipElementStack, currentContext.OpenClipElementStack.Length()-1))
+			panic("LayoutElementClipElementIds length does not match LayoutElements length")
 		}
 	} else {
-		if currentContext.LayoutElementClipElementIds.Length() == 0 {
+		if currentContext.LayoutElementClipElementIds.Length() == currentContext.LayoutElements.Length()-1 {
 			Clay__Array_Add(&currentContext.LayoutElementClipElementIds, 0)
+		} else if currentContext.LayoutElementClipElementIds.Length() == currentContext.LayoutElements.Length() {
+			Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, 0)
 		} else {
-			if currentContext.LayoutElementClipElementIds.Length() <= currentContext.LayoutElements.Length()-1 {
-				Clay__Array_Add(&currentContext.LayoutElementClipElementIds, 0)
-			} else {
-				Clay__Array_Set(&currentContext.LayoutElementClipElementIds, currentContext.LayoutElements.Length()-1, 0)
-			}
+			panic("LayoutElementClipElementIds length does not match LayoutElements length")
 		}
 	}
 }

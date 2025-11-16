@@ -7,3 +7,4 @@ a non-exhaustive list of things...
 
 - [ ] scrolling
 - [ ] hover - conditional element declaration 
+- [ ] text - font handling

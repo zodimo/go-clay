@@ -13,6 +13,7 @@ import (
 	"github.com/zodimo/clay-go/clay"
 	"github.com/zodimo/clay-go/pkg/claygio"
 	"github.com/zodimo/clay-go/pkg/mem"
+	"github.com/zodimo/go-lazy"
 )
 
 func main() {
@@ -109,7 +110,7 @@ func run(w *app.Window) error {
 							Bottom: 5,
 						},
 					},
-					BackgroundColor: clay.CLAY_RGBA(153, 153, 153, 255), //dark grey for main container
+					BackgroundColor: lazy.New(clay.CLAY_RGBA(153, 153, 153, 255)), //dark grey for main container
 					CornerRadius:    clay.CLAY_CORNER_RADIUS(40),
 				},
 				clay.CLAY_TEXT("Hello, world!", clay.TextWithFontSize(48)),
@@ -123,7 +124,7 @@ func run(w *app.Window) error {
 							},
 							Padding: clay.CLAY_PADDING_ALL(16),
 						},
-						BackgroundColor: clay.CLAY_RGBA(255, 0, 0, 255), // red
+						BackgroundColor: lazy.New(clay.CLAY_RGBA(255, 0, 0, 255)), // red
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
 				),
@@ -138,7 +139,7 @@ func run(w *app.Window) error {
 							Padding:         clay.CLAY_PADDING_ALL(16),
 							LayoutDirection: clay.CLAY_TOP_TO_BOTTOM,
 						},
-						BackgroundColor: clay.CLAY_RGBA(0, 255, 0, 255), // green
+						BackgroundColor: lazy.New(clay.CLAY_RGBA(0, 255, 0, 255)), // green
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
 					clay.CLAY_TEXT("good, morning!"),
@@ -152,7 +153,7 @@ func run(w *app.Window) error {
 								},
 								Padding: clay.CLAY_PADDING_ALL(16),
 							},
-							BackgroundColor: clay.CLAY_RGBA(0, 0, 255, 255), // blue
+							BackgroundColor: lazy.New(clay.CLAY_RGBA(0, 0, 255, 255)), // blue
 							CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 							Border: clay.Clay_BorderElementConfig{
 								Color: clay.CLAY_RGBA(255, 0, 255, 255), // purple

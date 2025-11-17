@@ -13,6 +13,7 @@ import (
 	"github.com/zodimo/clay-go/clay"
 	"github.com/zodimo/clay-go/pkg/claygio"
 	"github.com/zodimo/clay-go/pkg/mem"
+	"github.com/zodimo/go-lazy"
 )
 
 func main() {
@@ -21,6 +22,7 @@ func main() {
 		w.Option(
 			app.Title("Clay Simple Container Example"),
 			app.Size(unit.Dp(800), unit.Dp(600)),
+			app.MinSize(unit.Dp(800), unit.Dp(600)),
 		)
 
 		if err := run(w); err != nil {
@@ -105,7 +107,7 @@ func run(w *app.Window) error {
 							Bottom: 5,
 						},
 					},
-					BackgroundColor: clay.CLAY_RGBA(153, 153, 153, 255), //dark grey for main container
+					BackgroundColor: lazy.New(clay.CLAY_RGBA(153, 153, 153, 255)), //dark grey for main container
 					CornerRadius:    clay.CLAY_CORNER_RADIUS(40),
 				},
 				clay.CLAY(
@@ -117,7 +119,7 @@ func run(w *app.Window) error {
 								Height: clay.CLAY_SIZING_PERCENT(0.2),
 							},
 						},
-						BackgroundColor: clay.CLAY_RGBA(0, 255, 0, 255), // green
+						BackgroundColor: lazy.New(clay.CLAY_RGBA(0, 255, 0, 255)), // green
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
 				),
@@ -130,7 +132,7 @@ func run(w *app.Window) error {
 								Height: clay.CLAY_SIZING_PERCENT(0.2),
 							},
 						},
-						BackgroundColor: clay.CLAY_RGBA(0, 0, 255, 255), // blue
+						BackgroundColor: lazy.New(clay.CLAY_RGBA(0, 0, 255, 255)), // blue
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
 				),
@@ -143,7 +145,7 @@ func run(w *app.Window) error {
 								Height: clay.CLAY_SIZING_PERCENT(0.2),
 							},
 						},
-						BackgroundColor: clay.CLAY_RGBA(255, 255, 0, 255), // yellow
+						BackgroundColor: lazy.New(clay.CLAY_RGBA(255, 255, 0, 255)), // yellow
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
 				),
@@ -156,7 +158,7 @@ func run(w *app.Window) error {
 								Height: clay.CLAY_SIZING_PERCENT(0.2),
 							},
 						},
-						BackgroundColor: clay.CLAY_RGBA(255, 255, 255, 255), // white
+						BackgroundColor: lazy.New(clay.CLAY_RGBA(255, 255, 255, 255)), // white
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
 				),
@@ -169,7 +171,7 @@ func run(w *app.Window) error {
 								Height: clay.CLAY_SIZING_PERCENT(0.2),
 							},
 						},
-						BackgroundColor: clay.CLAY_RGBA(255, 0, 0, 255), // red
+						BackgroundColor: lazy.New(clay.CLAY_RGBA(255, 0, 0, 255)), // red
 						CornerRadius:    clay.CLAY_CORNER_RADIUS(15),
 					},
 				),

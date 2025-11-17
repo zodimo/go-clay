@@ -69,9 +69,11 @@ func (c *ClayGioEngine) GetMousePosition() clay.Clay_Vector2 {
 }
 
 func (c *ClayGioEngine) GetMouseScrollDelta() clay.Clay_Vector2 {
+	// Negate scroll delta: Gio gives positive Y when scrolling down,
+	// but we want positive delta to mean scroll down (content moves up, scroll position becomes more negative)
 	delta := clay.Clay_Vector2{
-		X: c.input.pointerScroll.DeltaX,
-		Y: c.input.pointerScroll.DeltaY,
+		X: -c.input.pointerScroll.DeltaX,
+		Y: -c.input.pointerScroll.DeltaY,
 	}
 	return delta
 }

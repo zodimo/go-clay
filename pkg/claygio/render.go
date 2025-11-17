@@ -33,14 +33,9 @@ func (r *renderer) render(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
 		panic(fmt.Sprintf("Unknown render command type: %s", renderCommand.CommandType))
 	}
 	if r.clippingActive {
-		fmt.Printf("clipping active, pushing to op call stack: %s\n", renderCommand.DebugString())
 		r.opCallStack = append(r.opCallStack, callOp)
 	} else {
 		if len(r.opCallStack) > 0 {
-			fmt.Printf("flushing op call stack, in clipping area :%s\n", r.clippingContainer.String())
-			//setup container constraints
-			fmt.Printf("container constraints: %v\n", image.Pt(int(r.clippingContainer.Width), int(r.clippingContainer.Height)))
-
 			offsetOp := op.Offset(image.Pt(int(r.clippingContainer.X), int(r.clippingContainer.Y))).Push(ops)
 			clipOp := clip.Rect{Max: image.Pt(int(r.clippingContainer.Width), int(r.clippingContainer.Height))}.Push(ops)
 			for _, callOp := range r.opCallStack {

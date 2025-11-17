@@ -1,4 +1,3 @@
-
 void Clay__CalculateFinalLayout(void) {
     Clay_Context* context = Clay_GetCurrentContext();
     // Calculate sizing along the X axis
@@ -37,7 +36,7 @@ void Clay__CalculateFinalLayout(void) {
             // measuredWord->length == 0 means a newline character
             else if (measuredWord->length == 0 || lineWidth + measuredWord->width > containerElement->dimensions.width) {
                 // Wrapped text lines list has overflowed, just render out the line
-                bool finalCharIsSpace = textElementData->text.chars[CLAY__MAX(lineStartOffset + lineLengthChars - 1, 0)] == ' ';
+                bool finalCharIsSpace = textElementData->text.chars[lineStartOffset + lineLengthChars - 1] == ' ';
                 Clay__WrappedTextLineArray_Add(&context->wrappedTextLines, CLAY__INIT(Clay__WrappedTextLine) { { lineWidth + (finalCharIsSpace ? -spaceWidth : 0), lineHeight }, { .length = lineLengthChars + (finalCharIsSpace ? -1 : 0), .chars = &textElementData->text.chars[lineStartOffset] } });
                 textElementData->wrappedLines.length++;
                 if (lineLengthChars == 0 || measuredWord->length == 0) {
@@ -88,9 +87,7 @@ void Clay__CalculateFinalLayout(void) {
             // Add the children to the DFS buffer (needs to be pushed in reverse so that stack traversal is in correct layout order)
             for (int32_t i = 0; i < currentElement->childrenOrTextContent.children.length; i++) {
                 context->treeNodeVisited.internalArray[dfsBuffer.length] = false;
-                Clay__LayoutElementTreeNodeArray_Add(&dfsBuffer, CLAY__INIT(Clay__LayoutElementTreeNode) { 
-                    .layoutElement = Clay_LayoutElementArray_Get(&context->layoutElements, currentElement->childrenOrTextContent.children.elements[i]) 
-                });
+                Clay__LayoutElementTreeNodeArray_Add(&dfsBuffer, CLAY__INIT(Clay__LayoutElementTreeNode) { .layoutElement = Clay_LayoutElementArray_Get(&context->layoutElements, currentElement->childrenOrTextContent.children.elements[i]) });
             }
             continue;
         }
@@ -217,6 +214,7 @@ void Clay__CalculateFinalLayout(void) {
                     if (clipConfig->vertical) {
                         rootPosition.y += clipConfig->childOffset.y;
                     }
+                    break;
                 }
                 Clay__AddRenderCommand(CLAY__INIT(Clay_RenderCommand) {
                     .boundingBox = clipHashMapItem->boundingBox,
@@ -273,6 +271,12 @@ void Clay__CalculateFinalLayout(void) {
                 Clay_LayoutElementHashMapItem *hashMapItem = Clay__GetHashMapItem(currentElement->id);
                 if (hashMapItem) {
                     hashMapItem->boundingBox = currentElementBoundingBox;
+                    if (hashMapItem->idAlias) {
+                        Clay_LayoutElementHashMapItem *hashMapItemAlias = Clay__GetHashMapItem(hashMapItem->idAlias);
+                        if (hashMapItemAlias) {
+                            hashMapItemAlias->boundingBox = currentElementBoundingBox;
+                        }
+                    }
                 }
 
                 int32_t sortedConfigIndexes[20];
@@ -447,7 +451,6 @@ void Clay__CalculateFinalLayout(void) {
                             default: break;
                         }
                         currentElementTreeNode->nextChildOffset.x += extraSpace;
-                        extraSpace = CLAY__MAX(0, extraSpace);
                     } else {
                         for (int32_t i = 0; i < currentElement->childrenOrTextContent.children.length; ++i) {
                             Clay_LayoutElement *childElement = Clay_LayoutElementArray_Get(&context->layoutElements, currentElement->childrenOrTextContent.children.elements[i]);
@@ -461,7 +464,6 @@ void Clay__CalculateFinalLayout(void) {
                             case CLAY_ALIGN_Y_CENTER: extraSpace /= 2; break;
                             default: break;
                         }
-                        extraSpace = CLAY__MAX(0, extraSpace);
                         currentElementTreeNode->nextChildOffset.y += extraSpace;
                     }
 

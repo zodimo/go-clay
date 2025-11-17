@@ -2,18 +2,26 @@ package claygio
 
 import (
 	"image"
+	"math"
+	"runtime"
 	"time"
 
+	"gioui.org/f32"
 	"gioui.org/gesture"
 	"gioui.org/io/event"
+	"gioui.org/io/input"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
+	"gioui.org/unit"
 	"gioui.org/widget"
 	"github.com/zodimo/clay-go/clay"
+	"github.com/zodimo/clay-go/pkg/claygio/fling"
 )
+
+const touchSlop = unit.Dp(3)
 
 // Clickable represents a click tracker
 type GioInput struct {
@@ -23,8 +31,8 @@ type GioInput struct {
 	requestClicks int
 	pressedKey    key.Name
 
-	pointerMove PointerMove
-	// pointerScroll gesture.Scroll
+	pointerMove   PointerMove
+	pointerScroll PointerScroll
 
 	// clickedThisFrame tracks if a click occurred in the current frame
 	clickedThisFrame bool
@@ -32,9 +40,10 @@ type GioInput struct {
 
 func NewGioInput() *GioInput {
 	return &GioInput{
-		pointerClick: gesture.Click{},
-		clickHistory: make([]widget.Press, 0),
-		pointerMove:  PointerMove{},
+		pointerClick:  gesture.Click{},
+		clickHistory:  make([]widget.Press, 0),
+		pointerMove:   PointerMove{},
+		pointerScroll: PointerScroll{},
 	}
 }
 
@@ -54,11 +63,6 @@ func (b *GioInput) Click() {
 // This should be called after Update() has been called for the frame.
 func (b *GioInput) Clicked() bool {
 	return b.clickedThisFrame
-}
-
-func (b *GioInput) clicked(gtx layout.Context) bool {
-	_, clicked := b.clickableUpdate(gtx)
-	return clicked
 }
 
 // Hovered reports whether a pointer is over the element.
@@ -121,6 +125,7 @@ func (b *GioInput) add(gtx layout.Context) {
 
 	// Add pointer move handler for tracking mouse position anywhere on the page
 	b.pointerMove.Add(gtx.Ops)
+	b.pointerScroll.Add(gtx.Ops)
 }
 
 // Update processes input events and updates the state.
@@ -134,7 +139,7 @@ func (b *GioInput) Update(gtx layout.Context) {
 
 	// Update pointer move tracking
 	b.pointerMove.Update(gtx)
-
+	b.pointerScroll.Update(gtx.Metric, gtx.Source, gtx.Now, pointer.ScrollRange{Min: -1000, Max: 1000}, pointer.ScrollRange{Min: -1000, Max: 1000})
 	// Process all click events - if any click occurred, set clickedThisFrame to true
 	// This matches the pattern from widget.Clickable.layout() which processes
 	// all pending clicks in a loop
@@ -222,5 +227,165 @@ func (pm *PointerMove) Update(gtx layout.Context) {
 			pm.Position = e.Position.Round()
 			pm.Time = gtx.Now
 		}
+	}
+}
+
+type PointerScroll struct {
+	ScrollX   float32
+	ScrollY   float32
+	DeltaX    float32 // Accumulated integer delta for this frame
+	DeltaY    float32 // Accumulated integer delta for this frame
+	Time      time.Time
+	DeltaTime time.Duration
+
+	dragging   bool
+	estimatorX fling.Extrapolation
+	estimatorY fling.Extrapolation
+
+	pid      pointer.ID
+	lastX    int
+	lastY    int
+	flingerX fling.Animation
+	flingerY fling.Animation
+}
+
+func (ps *PointerScroll) Add(ops *op.Ops) {
+	event.Op(ops, ps)
+}
+
+// Stop any remaining fling movement.
+func (s *PointerScroll) Stop() {
+	s.flingerX = fling.Animation{}
+	s.flingerY = fling.Animation{}
+}
+
+// Update state and report the scroll distance along axis.
+func (s *PointerScroll) Update(cfg unit.Metric, q input.Source, t time.Time, scrollx, scrolly pointer.ScrollRange) {
+	f := pointer.Filter{
+		Target:  s,
+		Kinds:   pointer.Press | pointer.Drag | pointer.Release | pointer.Scroll | pointer.Cancel,
+		ScrollX: scrollx,
+		ScrollY: scrolly,
+	}
+
+	s.DeltaTime = t.Sub(s.Time)
+	s.Time = t
+
+	// Reset delta for this frame
+	s.DeltaX = 0
+	s.DeltaY = 0
+
+	for {
+		evt, ok := q.Event(f)
+		if !ok {
+			break
+		}
+		e, ok := evt.(pointer.Event)
+		if !ok {
+			continue
+		}
+		switch e.Kind {
+		case pointer.Press:
+			if s.dragging {
+				break
+			}
+			// Only scroll on touch drags, or on Android where mice
+			// drags also scroll by convention.
+			if e.Source != pointer.Touch && runtime.GOOS != "android" {
+				break
+			}
+			s.Stop()
+			s.estimatorX = fling.Extrapolation{}
+			s.estimatorY = fling.Extrapolation{}
+			vX := s.val(gesture.Horizontal, e.Position)
+			vY := s.val(gesture.Vertical, e.Position)
+			s.lastX = int(math.Round(float64(vX)))
+			s.lastY = int(math.Round(float64(vY)))
+			s.estimatorX.Sample(e.Time, vX)
+			s.estimatorY.Sample(e.Time, vY)
+			s.dragging = true
+			s.pid = e.PointerID
+		case pointer.Release:
+			if s.pid != e.PointerID {
+				break
+			}
+			flingX := s.estimatorX.Estimate()
+			flingY := s.estimatorY.Estimate()
+			if slop, d := float32(cfg.Dp(touchSlop)), flingX.Distance; d < -slop || d > slop {
+				s.flingerX.Start(cfg, t, flingX.Velocity)
+			}
+
+			if slop, d := float32(cfg.Dp(touchSlop)), flingY.Distance; d < -slop || d > slop {
+				s.flingerY.Start(cfg, t, flingY.Velocity)
+			}
+			fallthrough
+		case pointer.Cancel:
+			s.dragging = false
+		case pointer.Scroll:
+			s.ScrollX += e.Scroll.X
+			s.ScrollY += e.Scroll.Y
+
+			// Extract integer part as delta, keep fractional part for accumulation
+			// Use math.Trunc (same as int() but explicit) to truncate towards zero
+			// This matches Gio's gesture.Scroll pattern
+			iscrollX := int(math.Trunc(float64(s.ScrollX)))
+			iscrollY := int(math.Trunc(float64(s.ScrollY)))
+			s.DeltaX += float32(iscrollX)
+			s.DeltaY += float32(iscrollY)
+			s.ScrollX -= float32(iscrollX)
+			s.ScrollY -= float32(iscrollY)
+		case pointer.Drag:
+			if !s.dragging || s.pid != e.PointerID {
+				continue
+			}
+			valX := s.val(gesture.Horizontal, e.Position)
+			valY := s.val(gesture.Vertical, e.Position)
+			s.estimatorX.Sample(e.Time, valX)
+			s.estimatorY.Sample(e.Time, valY)
+			vX := int(math.Round(float64(valX)))
+			vY := int(math.Round(float64(valY)))
+
+			distX := s.lastX - vX
+			distY := s.lastY - vY
+			if e.Priority < pointer.Grabbed {
+				slop := cfg.Dp(touchSlop)
+				if distX >= slop || -slop >= distX {
+					q.Execute(pointer.GrabCmd{Tag: s, ID: e.PointerID})
+				}
+				if distY >= slop || -slop >= distY {
+					q.Execute(pointer.GrabCmd{Tag: s, ID: e.PointerID})
+				}
+			} else {
+				s.lastX = vX
+				s.lastY = vY
+			}
+		}
+	}
+
+	// Update fling animations and add their contribution to scroll delta
+	if s.flingerX.Active() {
+		flingDelta := s.flingerX.Tick(t)
+		s.DeltaX += float32(flingDelta)
+	}
+	if s.flingerY.Active() {
+		flingDelta := s.flingerY.Tick(t)
+		s.DeltaY += float32(flingDelta)
+	}
+
+	if s.flingerX.Active() || s.flingerY.Active() {
+		q.Execute(op.InvalidateCmd{})
+	}
+}
+
+func (s *PointerScroll) val(axis gesture.Axis, p f32.Point) float32 {
+	switch axis {
+	case gesture.Horizontal:
+		return p.X
+	case gesture.Vertical:
+		return p.Y
+	case gesture.Both:
+		return p.X + p.Y
+	default:
+		return 0.0
 	}
 }

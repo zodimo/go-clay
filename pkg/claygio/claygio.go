@@ -69,7 +69,14 @@ func (c *ClayGioEngine) GetMousePosition() clay.Clay_Vector2 {
 }
 
 func (c *ClayGioEngine) GetMouseScrollDelta() clay.Clay_Vector2 {
-	return clay.Clay_Vector2{}
+	delta := clay.Clay_Vector2{
+		X: c.input.pointerScroll.DeltaX,
+		Y: c.input.pointerScroll.DeltaY,
+	}
+	return delta
+}
+func (c *ClayGioEngine) GetMouseScrollDeltaTime() float32 {
+	return float32(c.input.pointerScroll.DeltaTime.Seconds())
 }
 
 func (c *ClayGioEngine) UpdateInput(gtx layout.Context) {

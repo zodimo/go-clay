@@ -406,10 +406,10 @@ func run(w *app.Window) error {
 							},
 							BackgroundColor: lazy.New(panelConfig.Color),
 							CornerRadius:    panelConfig.CornerRadius,
-							// Clip: clay.Clay_ClipElementConfig{
-							// 	Vertical:    true,
-							// 	ChildOffset: clay.Clay_GetScrollOffset(),
-							// },
+							Clip: clay.Clay_ClipElementConfig{
+								Vertical:    true,
+								ChildOffset: clay.Clay_GetScrollOffset(),
+							},
 						},
 						RenderDocumentContent(SelectedDocumentIndex)...,
 					),
@@ -423,6 +423,8 @@ func run(w *app.Window) error {
 				switch cmd.CommandType {
 				case clay.CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
 				case clay.CLAY_RENDER_COMMAND_TYPE_TEXT:
+				case clay.CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
+				case clay.CLAY_RENDER_COMMAND_TYPE_SCISSOR_END:
 				default:
 					printCommand(i, cmd)
 				}

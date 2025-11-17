@@ -9,3 +9,4 @@ a non-exhaustive list of things...
 - [x] hover - conditional element declaration 
 - [ ] text - font handling
 - [ ] Clay__RenderDebugView - dependent on hover and scrolling
+- [ ] align with v0.14

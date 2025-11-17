@@ -16,7 +16,7 @@ func (r *renderer) render(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
 	var callOp op.CallOp
 	switch renderCommand.CommandType {
 	case clay.CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
-		callOp = RenderRectangle(renderCommand)
+		callOp = r.RenderRectangle(renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_BORDER:
 		callOp = RenderBorder(renderCommand)
 	case clay.CLAY_RENDER_COMMAND_TYPE_TEXT:
@@ -40,15 +40,14 @@ func (r *renderer) render(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
 			fmt.Printf("flushing op call stack, in clipping area :%s\n", r.clippingContainer.String())
 			//setup container constraints
 			fmt.Printf("container constraints: %v\n", image.Pt(int(r.clippingContainer.Width), int(r.clippingContainer.Height)))
-			clipOp := clip.Rect{Max: image.Pt(int(r.clippingContainer.Width), int(r.clippingContainer.Height))}.Push(ops)
-			// offsetOp := op.Offset(image.Pt(int(r.clippingContainer.X), int(r.clippingContainer.Y))).Push(ops)
 
+			offsetOp := op.Offset(image.Pt(int(r.clippingContainer.X), int(r.clippingContainer.Y))).Push(ops)
+			clipOp := clip.Rect{Max: image.Pt(int(r.clippingContainer.Width), int(r.clippingContainer.Height))}.Push(ops)
 			for _, callOp := range r.opCallStack {
 				callOp.Add(ops)
 			}
-			// offsetOp.Pop()
-
 			clipOp.Pop()
+			offsetOp.Pop()
 			r.opCallStack = make([]op.CallOp, 0)
 		} else {
 			callOp.Add(ops)
@@ -56,7 +55,10 @@ func (r *renderer) render(ops *op.Ops, renderCommand clay.Clay_RenderCommand) {
 	}
 }
 
-func RenderRectangle(renderCommand clay.Clay_RenderCommand) op.CallOp {
+func (r *renderer) RenderRectangle(renderCommand clay.Clay_RenderCommand) op.CallOp {
+	if r.clippingActive {
+		renderCommand.BoundingBox = renderCommand.BoundingBox.Offset((-1)*r.clippingContainer.X, (-1)*r.clippingContainer.Y)
+	}
 	return RenderRectangleWithBounds(renderCommand)
 }
 
@@ -65,6 +67,9 @@ func RenderBorder(renderCommand clay.Clay_RenderCommand) op.CallOp {
 }
 
 func (r *renderer) RenderText(renderCommand clay.Clay_RenderCommand) op.CallOp {
+	if r.clippingActive {
+		renderCommand.BoundingBox = renderCommand.BoundingBox.Offset((-1)*r.clippingContainer.X, (-1)*r.clippingContainer.Y)
+	}
 	return r.RenderTextWithBounds(renderCommand)
 }
 

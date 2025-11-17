@@ -403,9 +403,10 @@ func Clay__CalculateFinalLayout() {
 						if mapping.LayoutElement == currentElement {
 							scrollContainerData = mapping
 							mapping.BoundingBox = currentElementBoundingBox
-							scrollOffset = clipConfig.ChildOffset
 							if currentContext.ExternalScrollHandlingEnabled {
-								scrollOffset = Clay_Vector2{}
+								scrollOffset = clipConfig.ChildOffset
+							} else {
+								scrollOffset = mapping.ScrollPosition
 							}
 							break
 						}
@@ -641,9 +642,10 @@ func Clay__CalculateFinalLayout() {
 					for i := int32(0); i < int32(currentContext.ScrollContainerDatas.Length()); i++ {
 						mapping := Clay__Array_Get(&currentContext.ScrollContainerDatas, i)
 						if mapping.LayoutElement == currentElement {
-							scrollOffset = clipConfig.ChildOffset
 							if currentContext.ExternalScrollHandlingEnabled {
-								scrollOffset = Clay_Vector2{0, 0}
+								scrollOffset = clipConfig.ChildOffset
+							} else {
+								scrollOffset = mapping.ScrollPosition
 							}
 							break
 						}

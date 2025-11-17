@@ -311,6 +311,7 @@ func run(w *app.Window) error {
 
 			clayGioEngine.UpdateInput(gtx)
 			clay.Clay_SetPointerState(clayGioEngine.GetMousePosition(), clayGioEngine.IsPointerDown())
+			clay.Clay_UpdateScrollContainers(true, clayGioEngine.GetMouseScrollDelta(), clayGioEngine.GetMouseScrollDeltaTime())
 
 			// log.Printf("window size: %v", gtx.Constraints.Max)
 			clay.Clay_SetLayoutDimensions(

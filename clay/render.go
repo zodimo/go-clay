@@ -75,6 +75,15 @@ type Clay_BoundingBox struct {
 	Height float32
 }
 
+func (b *Clay_BoundingBox) Offset(x, y float32) Clay_BoundingBox {
+	return Clay_BoundingBox{
+		X:      b.X + x,
+		Y:      b.Y + y,
+		Width:  b.Width,
+		Height: b.Height,
+	}
+}
+
 func (b *Clay_BoundingBox) String() string {
 	json, err := json.MarshalIndent(b, "", "  ")
 	if err != nil {

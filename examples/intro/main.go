@@ -14,6 +14,8 @@ import (
 	"github.com/zodimo/clay-go/clay"
 	"github.com/zodimo/clay-go/pkg/claygio"
 	"github.com/zodimo/clay-go/pkg/mem"
+	"github.com/zodimo/go-lazy"
+	"github.com/zodimo/go-ternary"
 )
 
 func main() {
@@ -67,7 +69,7 @@ func RenderDocumentTitles(gtx layout.Context) []clay.ClayContainer {
 						},
 					},
 					CornerRadius:    clay.CLAY_CORNER_RADIUS(5),
-					BackgroundColor: clay.CLAY_RGBA(120, 120, 120, 255), //grey
+					BackgroundColor: lazy.New(clay.CLAY_RGBA(120, 120, 120, 255)), //grey
 					// OnHover: clay.Clay_OnHoverConfig{
 					// 	OnHoverFunction: handlerSidebarClick,
 					// 	UserData:        SidebarClickData{DocumentIndex: i, Gtx: gtx},
@@ -78,7 +80,6 @@ func RenderDocumentTitles(gtx layout.Context) []clay.ClayContainer {
 					clay.TextWithColor(COLOR_WHITE),
 				))
 		} else {
-
 			button = clay.CLAY(
 				"",
 				clay.Clay_ElementDeclaration{
@@ -86,6 +87,13 @@ func RenderDocumentTitles(gtx layout.Context) []clay.ClayContainer {
 						Padding: clay.CLAY_PADDING_ALL(16),
 					},
 					CornerRadius: clay.CLAY_CORNER_RADIUS(5),
+					BackgroundColor: ternary.TernaryLazy(
+						lazy.NewLazy(func() bool {
+							return clay.Clay_Hovered()
+						}),
+						lazy.New(clay.CLAY_RGBA(120, 120, 120, 255)),
+						lazy.New(clay.Clay_Color{}),
+					), //grey
 				},
 				//element is only open from here... so calling onHover in the declaration will be for the parent element...
 
@@ -125,7 +133,7 @@ func RenderFileMenu(show bool) clay.ClayContainer {
 		clay.CLAY(
 			"FileMenu",
 			clay.Clay_ElementDeclaration{
-				BackgroundColor: clay.CLAY_RGBA(40, 40, 40, 255), //grey
+				BackgroundColor: lazy.New(clay.CLAY_RGBA(40, 40, 40, 255)), //grey
 				CornerRadius:    clay.CLAY_CORNER_RADIUS(8),
 				Layout: clay.Clay_LayoutConfig{
 					LayoutDirection: clay.CLAY_TOP_TO_BOTTOM,
@@ -156,7 +164,7 @@ func RenderFileButton() clay.ClayContainer {
 					Bottom: 8,
 				},
 			},
-			BackgroundColor: clay.CLAY_RGBA(140, 140, 150, 255), //grey
+			BackgroundColor: lazy.New(clay.CLAY_RGBA(140, 140, 150, 255)), //grey
 			CornerRadius:    clay.CLAY_CORNER_RADIUS(5),
 		},
 		clay.CLAY_TEXT("File",
@@ -203,7 +211,7 @@ func RenderHeaderButton(text string) clay.ClayContainer {
 					Bottom: 8,
 				},
 			},
-			BackgroundColor: clay.CLAY_RGBA(140, 140, 150, 255), //grey
+			BackgroundColor: lazy.New(clay.CLAY_RGBA(140, 140, 150, 255)), //grey
 			CornerRadius:    clay.CLAY_CORNER_RADIUS(5),
 		},
 		clay.CLAY_TEXT(text,
@@ -323,7 +331,7 @@ func run(w *app.Window) error {
 						Padding:         clay.CLAY_PADDING_ALL(16),
 						ChildGap:        16,
 					},
-					BackgroundColor: clay.CLAY_RGBA(153, 153, 153, 255), //dark grey for main container
+					BackgroundColor: lazy.New(clay.CLAY_RGBA(153, 153, 153, 255)), //dark grey for main container
 				},
 				/////////////////////// Children goes here
 				clay.CLAY(
@@ -341,7 +349,7 @@ func run(w *app.Window) error {
 								Right: 16,
 							},
 						},
-						BackgroundColor: panelConfig.Color,
+						BackgroundColor: lazy.New(panelConfig.Color),
 						CornerRadius:    panelConfig.CornerRadius,
 					},
 					RenderFileButton(),
@@ -380,7 +388,7 @@ func run(w *app.Window) error {
 								ChildGap:        8,
 								Padding:         clay.CLAY_PADDING_ALL(16),
 							},
-							BackgroundColor: panelConfig.Color,
+							BackgroundColor: lazy.New(panelConfig.Color),
 							CornerRadius:    panelConfig.CornerRadius,
 						},
 
@@ -396,7 +404,7 @@ func run(w *app.Window) error {
 								ChildGap:        16,
 								Padding:         clay.CLAY_PADDING_ALL(16),
 							},
-							BackgroundColor: panelConfig.Color,
+							BackgroundColor: lazy.New(panelConfig.Color),
 							CornerRadius:    panelConfig.CornerRadius,
 							// Clip: clay.Clay_ClipElementConfig{
 							// 	Vertical:    true,

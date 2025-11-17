@@ -464,9 +464,9 @@ func Clay__ConfigureOpenElementPtr(elementDeclaration *Clay_ElementDeclaration) 
 
 	var sharedConfig *Clay_SharedElementConfig = nil
 
-	if elementDeclaration.BackgroundColor.A > 0 {
+	if elementDeclaration.BackgroundColor.Get().A > 0 {
 		sharedConfig = new(Clay_SharedElementConfig)
-		sharedConfig.BackgroundColor = elementDeclaration.BackgroundColor
+		sharedConfig.BackgroundColor = elementDeclaration.BackgroundColor.Get()
 		Clay__AttachElementConfig(Clay_ElementConfigUnion{SharedElementConfig: sharedConfig}, CLAY__ELEMENT_CONFIG_TYPE_SHARED)
 	}
 	if !Clay__MemCmpTyped(&elementDeclaration.CornerRadius, &Clay__CornerRadius_DEFAULT) {

@@ -2,6 +2,7 @@ package clay
 
 import (
 	"github.com/zodimo/clay-go/pkg/mem"
+	"github.com/zodimo/go-lazy"
 )
 
 // CLAY_DLL_EXPORT Clay_Context* Clay_Initialize(Clay_Arena arena, Clay_Dimensions layoutDimensions, Clay_ErrorHandler errorHandler);
@@ -188,7 +189,7 @@ type Clay_OnHoverConfig struct {
 
 type Clay_ElementDeclaration struct {
 	Layout          Clay_LayoutConfig
-	BackgroundColor Clay_Color
+	BackgroundColor lazy.Value[Clay_Color]
 	CornerRadius    Clay_CornerRadius
 	AspectRatio     Clay_AspectRatioElementConfig
 	Image           Clay_ImageElementConfig

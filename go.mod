@@ -7,7 +7,12 @@ tool (
 	github.com/xlab/c-for-go
 )
 
-require gioui.org v0.9.0
+require (
+	gioui.org v0.9.0
+	github.com/zodimo/go-lazy v0.1.0
+	github.com/zodimo/go-ternary v0.1.0
+	golang.org/x/image v0.26.0
+)
 
 require (
 	gioui.org/shader v1.0.8 // indirect
@@ -19,7 +24,6 @@ require (
 	github.com/xlab/c-for-go v1.3.0 // indirect
 	github.com/xlab/pkgconfig v0.0.0-20170226114623-cea12a0fd245 // indirect
 	golang.org/x/exp/shiny v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
-	golang.org/x/image v0.26.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
